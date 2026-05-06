@@ -57,6 +57,9 @@ function Products() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
+  const [earnings, setEarnings] = useState(null)
+const [iban, setIban] = useState('')
+const [ibanMsg, setIbanMsg] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedCondition, setSelectedCondition] = useState('')
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
@@ -459,6 +462,8 @@ function Orders({ user }) {
   const [orderList, setOrderList] = useState([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
+  const [payoutsData, setPayoutsData] = useState(null)
+  const [payoutMsg, setPayoutMsg] = useState('')
 
   const loadOrders = () => {
     orders.getAll().then(r => { setOrderList(r.data); setLoading(false) })
@@ -686,10 +691,10 @@ function AdminDashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [statsRes, ordersRes, usersRes, vendorsRes] = await Promise.all([
-        orders.adminGetStats(), orders.adminGetAll(), orders.adminGetUsers(), orders.adminGetVendors(),
+      const [statsRes, ordersRes, usersRes, vendorsRes, payoutsRes] = await Promise.all([
+        orders.adminGetStats(), orders.adminGetAll(), orders.adminGetUsers(), orders.adminGetVendors(), vendors.adminGetPayouts()
       ])
-      setStats(statsRes.data); setAllOrders(ordersRes.data); setAllUsers(usersRes.data); setAllVendors(vendorsRes.data)
+      setStats(statsRes.data); setAllOrders(ordersRes.data); setAllUsers(usersRes.data); setAllVendors(vendorsRes.data); setPayoutsData(payoutsRes.data)
     } catch (err) { console.error('Admin load error:', err) }
     setLoading(false)
   }
@@ -703,6 +708,17 @@ function AdminDashboard() {
     setUpdatingId(null)
   }
 
+  const handleMarkPaid = async (vendorId, amount) => {
+    const note = prompt('Add a note (optional):') || ''
+    try {
+      await vendors.adminMarkPaid({ vendorId, amount, note })
+      setPayoutMsg('✅ Payout marked as paid!')
+      loadData()
+      setTimeout(() => setPayoutMsg(''), 3000)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to mark payout')
+    }
+  }
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
   const roleColor = { CUSTOMER:'#6b7280', VENDOR:'#8b5cf6', ADMIN:'#ef4444' }
   const tabBtn = (key, label) => (
@@ -722,6 +738,7 @@ function AdminDashboard() {
         {tabBtn('orders', '📦 All Orders')}
         {tabBtn('users', '👥 Users')}
         {tabBtn('vendors', '🏪 Vendors')}
+        {tabBtn('payouts', '💰 Payouts')}
       </div>
 
       {tab === 'overview' && stats && (
@@ -730,6 +747,7 @@ function AdminDashboard() {
             {[
               { label:'Total Orders', value: stats.totalOrders, icon:'📦', color:'#f97316' },
               { label:'Total Revenue', value: formatQAR(stats.totalRevenue || 0), icon:'💰', color:'#10b981' },
+              { label:'Platform Fees', value: formatQAR(stats.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
               { label:'Total Users', value: stats.totalUsers, icon:'👥', color:'#3b82f6' },
               { label:'Total Vendors', value: stats.totalVendors, icon:'🏪', color:'#8b5cf6' },
               { label:'Active Products', value: stats.totalProducts, icon:'📱', color:'#f43f5e' },
@@ -839,6 +857,61 @@ function AdminDashboard() {
           </div>
         </div>
       )}
+      {tab === 'payouts' && payoutsData && (
+        <div>
+          {payoutMsg && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16}}>{payoutMsg}</div>}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:16, marginBottom:32}}>
+            <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
+              <p style={{fontSize:28, marginBottom:8}}>🏦</p>
+              <p style={{fontSize:22, fontWeight:700, color:'#10b981'}}>{formatQAR(payoutsData.summary?.totalPlatformRevenue || 0)}</p>
+              <p style={{color:'#666', fontSize:14}}>Total Platform Revenue</p>
+            </div>
+            <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
+              <p style={{fontSize:28, marginBottom:8}}>⏳</p>
+              <p style={{fontSize:22, fontWeight:700, color:'#f97316'}}>{formatQAR(payoutsData.summary?.totalPendingPayouts || 0)}</p>
+              <p style={{color:'#666', fontSize:14}}>Total Pending Payouts</p>
+            </div>
+          </div>
+          <h3 style={{marginBottom:16}}>Vendor Payout Summary</h3>
+          {payoutsData.vendors?.map(vendor => (
+            <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12}}>
+                <div>
+                  <p style={{fontWeight:700, fontSize:16, marginBottom:4}}>🏪 {vendor.storeName}</p>
+                  <p style={{color:'#666', fontSize:13}}>{vendor.ownerName} · {vendor.ownerEmail}</p>
+                  <p style={{color:'#aaa', fontSize:12}}>IBAN: {vendor.ibanNumber || 'Not provided'}</p>
+                  <p style={{color:'#aaa', fontSize:12}}>Commission: {(vendor.commissionRate * 100).toFixed(0)}%</p>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{display:'flex', gap:12, marginBottom:12, flexWrap:'wrap'}}>
+                    <div style={{textAlign:'center', background:'#f8f9fa', padding:'8px 12px', borderRadius:8}}>
+                      <p style={{fontWeight:700, color:'#1e3a5f', fontSize:14}}>{formatQAR(vendor.totalSales)}</p>
+                      <p style={{color:'#666', fontSize:11}}>Total Sales</p>
+                    </div>
+                    <div style={{textAlign:'center', background:'#fff7ed', padding:'8px 12px', borderRadius:8}}>
+                      <p style={{fontWeight:700, color:'#f97316', fontSize:14}}>{formatQAR(vendor.totalPlatformFee)}</p>
+                      <p style={{color:'#666', fontSize:11}}>Platform Fee</p>
+                    </div>
+                    <div style={{textAlign:'center', background:'#d1fae5', padding:'8px 12px', borderRadius:8}}>
+                      <p style={{fontWeight:700, color:'#065f46', fontSize:14}}>{formatQAR(vendor.totalEarnings)}</p>
+                      <p style={{color:'#666', fontSize:11}}>Vendor Earning</p>
+                    </div>
+                  </div>
+                  <div style={{display:'flex', alignItems:'center', gap:12, justifyContent:'flex-end'}}>
+                    <div style={{textAlign:'right'}}>
+                      <p style={{fontSize:13, color:'#666'}}>Paid: {formatQAR(vendor.totalPaid)}</p>
+                      <p style={{fontSize:15, fontWeight:700, color: vendor.pendingPayout > 0 ? '#ef4444' : '#10b981'}}>Pending: {formatQAR(vendor.pendingPayout)}</p>
+                    </div>
+                    {vendor.pendingPayout > 0 && (
+                      <button onClick={() => handleMarkPaid(vendor.id, vendor.pendingPayout)} style={{padding:'8px 16px', background:'#10b981', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>✅ Mark Paid</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -862,9 +935,13 @@ function VendorDashboard() {
   const loadStore = () => {
     vendors.getMyStore().then(r => { setStore(r.data); setLoading(false) }).catch(() => { setLoading(false) })
   }
+  const loadEarnings = () => {
+    vendors.getMyEarnings().then(r => { setEarnings(r.data); setIban(r.data.vendor?.ibanNumber || '') }).catch(() => {})
+  }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadStore() }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+useEffect(() => { loadStore(); loadEarnings() }, [])
   useEffect(() => {
     products.getCategories().then(r => setCategories(r.data)).catch(() => {})
   }, [])
@@ -880,6 +957,15 @@ function VendorDashboard() {
     setImageFile(null); setImagePreview(null); setImageUrl(''); setImageTab('upload')
   }
 
+  const handleSaveIban = async () => {
+    try {
+      await vendors.updateIban({ ibanNumber: iban })
+      setIbanMsg('✅ IBAN saved successfully!')
+      setTimeout(() => setIbanMsg(''), 3000)
+    } catch {
+      setIbanMsg('❌ Failed to save IBAN')
+    }
+  }
   const handleAddProduct = async () => {
     if (!form.name || !form.price || !form.stockQty) { setError('Name, price and stock are required'); return }
     setSaving(true); setError(''); setMessage('')
@@ -974,17 +1060,25 @@ function VendorDashboard() {
         <h2 style={{fontSize:28, marginBottom:8}}>🏪 {store.storeName}</h2>
         <p style={{color:'#94a3b8'}}>{store.description}</p>
         <div style={{display:'flex', gap:24, marginTop:20}}>
-          <div style={{background:'rgba(255,255,255,0.1)', padding:'12px 20px', borderRadius:10}}>
-            <p style={{fontSize:24, fontWeight:700}}>{store.products?.length || 0}</p>
-            <p style={{fontSize:12, color:'#94a3b8'}}>Products</p>
+          <div style={{display:'flex', gap:24, marginTop:20}}>
+            <div style={{background:'rgba(255,255,255,0.1)', padding:'12px 20px', borderRadius:10}}>
+              <p style={{fontSize:24, fontWeight:700}}>{store.products?.length || 0}</p>
+              <p style={{fontSize:12, color:'#94a3b8'}}>Products</p>
+            </div>
+            {earnings && (
+              <div style={{background:'rgba(255,255,255,0.1)', padding:'12px 20px', borderRadius:10}}>
+                <p style={{fontSize:24, fontWeight:700}}>{formatQAR(earnings.summary?.pendingPayout || 0)}</p>
+                <p style={{fontSize:12, color:'#94a3b8'}}>Pending Payout</p>
+              </div>
+            )}
           </div>
-        </div>
       </div>
 
-      <div style={{display:'flex', gap:12, marginBottom:24}}>
+      <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap'}}>
         {tabBtn('products', '📦 My Products')}
         {tabBtn('add', editingId ? '✏️ Edit Product' : '➕ Add Product')}
         {tabBtn('bulk', '📊 Bulk Upload')}
+        {tabBtn('earnings', '💰 My Earnings')}
       </div>
 
       {message && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16}}>{message}</div>}
@@ -1103,6 +1197,59 @@ function VendorDashboard() {
           <button onClick={handleBulkUpload} disabled={saving || !excelFile} style={{...styles.submitBtn, opacity: saving || !excelFile ? 0.7 : 1}}>
             {saving ? 'Uploading...' : '📤 Upload Products'}
           </button>
+        </div>
+      )}
+      {tab === 'earnings' && (
+        <div>
+          {earnings ? (
+            <>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:16, marginBottom:32}}>
+                {[
+                  { label:'Total Sales', value: formatQAR(earnings.summary?.totalSales || 0), icon:'🛒', color:'#1e3a5f' },
+                  { label:'Platform Fee (10%)', value: formatQAR(earnings.summary?.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
+                  { label:'Your Earnings', value: formatQAR(earnings.summary?.totalEarnings || 0), icon:'💰', color:'#10b981' },
+                  { label:'Total Paid', value: formatQAR(earnings.summary?.totalPaid || 0), icon:'✅', color:'#3b82f6' },
+                  { label:'Pending Payout', value: formatQAR(earnings.summary?.pendingPayout || 0), icon:'⏳', color:'#ef4444' },
+                ].map(stat => (
+                  <div key={stat.label} style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20, boxShadow:'0 2px 8px rgba(0,0,0,0.04)'}}>
+                    <p style={{fontSize:28, marginBottom:8}}>{stat.icon}</p>
+                    <p style={{fontSize:20, fontWeight:700, color: stat.color}}>{stat.value}</p>
+                    <p style={{color:'#666', fontSize:13}}>{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{background:'#f8f9fa', borderRadius:12, padding:20, marginBottom:24}}>
+                <h3 style={{marginBottom:12, fontSize:16}}>🏦 Your Bank IBAN</h3>
+                <p style={{color:'#666', fontSize:13, marginBottom:12}}>Add your IBAN so admin can transfer your earnings</p>
+                <div style={{display:'flex', gap:12}}>
+                  <input style={{...styles.input, flex:1, marginBottom:0}} placeholder="QA57DOHB00001234567890ABCDEFG" value={iban} onChange={e => setIban(e.target.value)} />
+                  <button onClick={handleSaveIban} style={{...styles.submitBtn, width:'auto', padding:'12px 20px'}}>Save</button>
+                </div>
+                {ibanMsg && <p style={{color: ibanMsg.includes('✅') ? '#10b981' : '#ef4444', marginTop:8, fontSize:13}}>{ibanMsg}</p>}
+              </div>
+
+              <h3 style={{marginBottom:16}}>📋 Order History</h3>
+              {earnings.orderItems?.length === 0 ? (
+                <p style={{color:'#888', textAlign:'center', padding:32}}>No orders yet</p>
+              ) : earnings.orderItems?.map(item => (
+                <div key={item.id} style={{border:'1px solid #eee', borderRadius:10, padding:16, marginBottom:12, background:'#fff'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8}}>
+                    <div>
+                      <p style={{fontWeight:600}}>{item.product?.name}</p>
+                      <p style={{color:'#666', fontSize:13}}>Order #{item.order?.id?.slice(0,8)}... · Qty: {item.quantity}</p>
+                      <p style={{color:'#aaa', fontSize:12}}>{new Date(item.order?.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <p style={{color:'#666', fontSize:13}}>Sale: {formatQAR(item.unitPrice * item.quantity)}</p>
+                      <p style={{color:'#f97316', fontSize:13}}>Fee: -{formatQAR(item.platformFee)}</p>
+                      <p style={{color:'#10b981', fontWeight:700}}>You get: {formatQAR(item.vendorEarning)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : <p style={{padding:40, color:'#666'}}>Loading earnings...</p>}
         </div>
       )}
     </div>

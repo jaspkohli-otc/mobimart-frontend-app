@@ -36,6 +36,10 @@ export const vendors = {
   getMyStore: () => API.get('/vendors/store'),
   uploadImage: (formData) => API.post('/vendors/upload-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   bulkUpload: (formData) => API.post('/vendors/bulk-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getMyEarnings: () => API.get('/vendors/earnings'),
+  updateIban: (data) => API.put('/vendors/iban', data),
+  adminGetPayouts: () => API.get('/vendors/admin/payouts'),
+  adminMarkPaid: (data) => API.post('/vendors/admin/payouts', data),
 }
 
 export const cart = {
