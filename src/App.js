@@ -1366,4 +1366,5 @@ const styles = {
   removeBtn: { background:'transparent', border:'none', color:'#ef4444', cursor:'pointer', fontSize:16, padding:'4px 8px' },
 }
 
-export default App
+export default App/ /   f o r c e   d e p l o y   0 5 / 0 6 / 2 0 2 6   1 2 : 0 9 : 5 7  
+ 
