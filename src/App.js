@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'reac
 import { auth, products, cart, orders, vendors } from './api'
 import './App.css'
 
+const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
+
 const conditionLabel = (c) => {
   if (c === 'NEW') return { text: '🟢 New', bg: '#d1fae5', color: '#065f46' }
   if (c === 'LIKE_NEW') return { text: '🟡 Like New', bg: '#fef9c3', color: '#854d0e' }
@@ -86,7 +88,6 @@ function Products() {
     <div style={styles.page}>
       <input style={styles.search} placeholder="Search phones, accessories..." value={search} onChange={e => setSearch(e.target.value)} />
 
-      {/* Filters row */}
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
         <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
           style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
@@ -123,7 +124,6 @@ function Products() {
         </span>
       </div>
 
-      {/* Category pills */}
       {categories.length > 0 && (
         <div style={{display:'flex', gap:8, marginBottom:20, flexWrap:'wrap'}}>
           <button onClick={() => setSelectedCategory('')}
@@ -141,7 +141,6 @@ function Products() {
         </div>
       )}
 
-      {/* Products grid */}
       {loading ? <p>Loading...</p> : filtered.length === 0 ? (
         <div style={{textAlign:'center', padding:60}}>
           <p style={{fontSize:40, marginBottom:16}}>🔍</p>
@@ -163,7 +162,7 @@ function Products() {
                     <span style={{padding:'2px 8px', borderRadius:4, fontSize:11, fontWeight:600, background: cond.bg, color: cond.color}}>{cond.text}</span>
                   </div>
                   <h3 style={styles.cardName}>{p.name}</h3>
-                  <p style={styles.cardPrice}>${p.price}</p>
+                  <p style={styles.cardPrice}>{formatQAR(p.price)}</p>
                   <Link to={`/products/${p.id}`} style={styles.cardBtn}>View Details</Link>
                 </div>
               </div>
@@ -293,13 +292,13 @@ function Cart({ onCartUpdate }) {
                   <span style={{fontWeight:500, minWidth:20, textAlign:'center'}}>{item.quantity}</span>
                   <button onClick={() => handleUpdate(item.productId, item.quantity + 1)} style={styles.qtyBtn}>+</button>
                 </div>
-                <p style={{color:'#f97316', fontWeight:500, minWidth:70, textAlign:'right'}}>${(item.product.price * item.quantity).toFixed(2)}</p>
+                <p style={{color:'#f97316', fontWeight:500, minWidth:90, textAlign:'right'}}>{formatQAR(item.product.price * item.quantity)}</p>
                 <button onClick={() => handleRemove(item.productId)} style={styles.removeBtn}>✕</button>
               </div>
             </div>
           ))}
           <div style={styles.cartTotal}>
-            <h3 style={{marginBottom:16}}>Total: ${cartData.total}</h3>
+            <h3 style={{marginBottom:16}}>Total: {formatQAR(cartData.total)}</h3>
             <button onClick={() => navigate('/checkout')} style={styles.submitBtn}>Proceed to Checkout →</button>
           </div>
         </>
@@ -393,12 +392,12 @@ function Checkout() {
                 {cartData.items.map(item => (
                   <div key={item.id} style={{display:'flex', justifyContent:'space-between', marginBottom:12, fontSize:14}}>
                     <span style={{flex:1, marginRight:8}}>{item.product.name} × {item.quantity}</span>
-                    <span style={{fontWeight:600}}>${(item.product.price * item.quantity).toFixed(2)}</span>
+                    <span style={{fontWeight:600}}>{formatQAR(item.product.price * item.quantity)}</span>
                   </div>
                 ))}
                 <div style={{borderTop:'1px solid #ddd', paddingTop:12, display:'flex', justifyContent:'space-between', fontWeight:700, fontSize:16}}>
                   <span>Total</span>
-                  <span style={{color:'#f97316'}}>${cartData.total}</span>
+                  <span style={{color:'#f97316'}}>{formatQAR(cartData.total)}</span>
                 </div>
               </>
             )}
@@ -434,7 +433,7 @@ function OrderDetail() {
       </div>
       <div style={{background:'#f8f9fa', borderRadius:12, padding:24, marginBottom:24}}>
         <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>Status</span><span style={{fontWeight:700, color: statusColor[order.status]}}>{order.status}</span></div>
-        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>Total</span><span style={{fontWeight:700, color:'#f97316', fontSize:18}}>${order.totalAmount}</span></div>
+        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>Total</span><span style={{fontWeight:700, color:'#f97316', fontSize:18}}>{formatQAR(order.totalAmount)}</span></div>
         <div style={{display:'flex', justifyContent:'space-between'}}><span style={{color:'#666'}}>Delivery to</span><span style={{fontWeight:500, textAlign:'right'}}>{order.shippingAddress?.street}, {order.shippingAddress?.city}</span></div>
       </div>
       <h3 style={{marginBottom:16}}>Items Ordered</h3>
@@ -445,7 +444,7 @@ function OrderDetail() {
             <p style={{fontWeight:500}}>{item.product?.name}</p>
             <p style={{color:'#666', fontSize:14}}>{item.vendor?.storeName} · Qty: {item.quantity}</p>
           </div>
-          <p style={{color:'#f97316', fontWeight:600}}>${(item.unitPrice * item.quantity).toFixed(2)}</p>
+          <p style={{color:'#f97316', fontWeight:600}}>{formatQAR(item.unitPrice * item.quantity)}</p>
         </div>
       ))}
       <div style={{display:'flex', gap:12, marginTop:32}}>
@@ -499,7 +498,7 @@ function Orders({ user }) {
               <p style={{color:'#666', fontSize:14, marginTop:4}}>{new Date(order.createdAt).toLocaleDateString('en-QA', {day:'numeric', month:'short', year:'numeric'})}</p>
             </div>
             <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-              <p style={{color:'#f97316', fontWeight:700, fontSize:18}}>${order.totalAmount}</p>
+              <p style={{color:'#f97316', fontWeight:700, fontSize:18}}>{formatQAR(order.totalAmount)}</p>
               <span style={{background: statusColor[order.status] + '20', color: statusColor[order.status], padding:'4px 12px', borderRadius:20, fontSize:13, fontWeight:600}}>{order.status}</span>
               {user?.role === 'VENDOR' && nextStatus[order.status] && (
                 <button onClick={() => handleStatusUpdate(order.id, nextStatus[order.status])} disabled={updatingId === order.id}
@@ -611,7 +610,7 @@ function ProductDetail({ user }) {
               {reviews.length > 0 && ` (${reviews.length} review${reviews.length !== 1 ? 's' : ''})`}
             </span>
           </div>
-          <p style={{color:'#f97316', fontSize:32, fontWeight:700, marginBottom:16}}>${product.price}</p>
+          <p style={{color:'#f97316', fontSize:32, fontWeight:700, marginBottom:16}}>{formatQAR(product.price)}</p>
           <p style={{color:'#555', lineHeight:1.7, marginBottom:24}}>{product.description}</p>
           <p style={{color:'#888', marginBottom:20}}>In stock: {product.stockQty} units</p>
           <button onClick={handleAddToCart} disabled={added} style={{...styles.submitBtn, width:'auto', padding:'14px 32px', background: added ? '#10b981' : '#f97316', opacity: added ? 0.85 : 1, cursor: added ? 'default' : 'pointer', transition:'background 0.3s'}}>
@@ -730,7 +729,7 @@ function AdminDashboard() {
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:16, marginBottom:32}}>
             {[
               { label:'Total Orders', value: stats.totalOrders, icon:'📦', color:'#f97316' },
-              { label:'Total Revenue', value: `$${Number(stats.totalRevenue||0).toFixed(2)}`, icon:'💰', color:'#10b981' },
+              { label:'Total Revenue', value: formatQAR(stats.totalRevenue || 0), icon:'💰', color:'#10b981' },
               { label:'Total Users', value: stats.totalUsers, icon:'👥', color:'#3b82f6' },
               { label:'Total Vendors', value: stats.totalVendors, icon:'🏪', color:'#8b5cf6' },
               { label:'Active Products', value: stats.totalProducts, icon:'📱', color:'#f43f5e' },
@@ -750,7 +749,7 @@ function AdminDashboard() {
                 <p style={{color:'#666', fontSize:13}}>{order.user?.name} · {new Date(order.createdAt).toLocaleDateString()}</p>
               </div>
               <div style={{display:'flex', alignItems:'center', gap:12}}>
-                <p style={{fontWeight:700, color:'#f97316'}}>${order.totalAmount}</p>
+                <p style={{fontWeight:700, color:'#f97316'}}>{formatQAR(order.totalAmount)}</p>
                 <span style={{background: statusColor[order.status] + '20', color: statusColor[order.status], padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:600}}>{order.status}</span>
               </div>
             </div>
@@ -771,7 +770,7 @@ function AdminDashboard() {
                   <p style={{color:'#666', fontSize:13}}>📦 {order.orderItems?.length} item(s) · 📍 {order.shippingAddress?.city}</p>
                 </div>
                 <div style={{textAlign:'right'}}>
-                  <p style={{fontWeight:700, color:'#f97316', fontSize:18, marginBottom:8}}>${order.totalAmount}</p>
+                  <p style={{fontWeight:700, color:'#f97316', fontSize:18, marginBottom:8}}>{formatQAR(order.totalAmount)}</p>
                   <span style={{background: statusColor[order.status] + '20', color: statusColor[order.status], padding:'4px 12px', borderRadius:20, fontSize:13, fontWeight:600, display:'block', marginBottom:8}}>{order.status}</span>
                   <select value={order.status} onChange={e => handleStatusUpdate(order.id, e.target.value)} disabled={updatingId === order.id}
                     style={{padding:'6px 10px', borderRadius:8, border:'1px solid #ddd', fontSize:13, cursor:'pointer', background:'#fff'}}>
@@ -1014,7 +1013,7 @@ function VendorDashboard() {
                         <h3 style={{fontSize:15, fontWeight:600}}>{p.name}</h3>
                         <span style={{padding:'2px 8px', borderRadius:4, fontSize:11, fontWeight:600, background: cond.bg, color: cond.color}}>{cond.text}</span>
                       </div>
-                      <p style={{color:'#f97316', fontWeight:700, marginBottom:4}}>${p.price}</p>
+                      <p style={{color:'#f97316', fontWeight:700, marginBottom:4}}>{formatQAR(p.price)}</p>
                       <p style={{color:'#666', fontSize:13, marginBottom:12}}>Stock: {p.stockQty} units</p>
                       <div style={{display:'flex', gap:8}}>
                         <button onClick={() => handleEdit(p)} style={{flex:1, padding:'8px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>✏️ Edit</button>
@@ -1035,7 +1034,7 @@ function VendorDashboard() {
           <input style={styles.input} placeholder="Product Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
           <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder="Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
           <div style={{display:'flex', gap:12}}>
-            <input style={{...styles.input, flex:1}} placeholder="Price ($) *" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
+            <input style={{...styles.input, flex:1}} placeholder="Price (QAR) *" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
             <input style={{...styles.input, flex:1}} placeholder="Stock Qty *" type="number" value={form.stockQty} onChange={e => setForm({...form, stockQty: e.target.value})} />
           </div>
           <select style={styles.input} value={form.categoryId || ''} onChange={e => setForm({...form, categoryId: e.target.value})}>
