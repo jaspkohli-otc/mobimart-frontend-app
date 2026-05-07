@@ -11,6 +11,8 @@ function Navbar({ user, cartCount, onLogout }) {
         <Link to="/products" style={styles.navLink}>Shop</Link>
         {user ? (
           <>
+          {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>Admin</Link>}
+{user.role === 'VENDOR' && <Link to="/vendor" style={styles.navLink}>My Store</Link>}
             <Link to="/cart" style={styles.navLink}>🛒 Cart {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
             <Link to="/orders" style={styles.navLink}>My Orders</Link>
             <button onClick={onLogout} style={styles.logoutBtn}>Logout</button>
