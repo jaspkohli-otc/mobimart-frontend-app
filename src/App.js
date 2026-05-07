@@ -25,16 +25,16 @@ function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
         <Link to="/products" style={styles.navLink}>{t('shop')}</Link>
         {user ? (
           <>
-            {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>Admin</Link>}
-            {user.role === 'VENDOR' && <Link to="/vendor" style={styles.navLink}>My Store</Link>}
-            <Link to="/cart" style={styles.navLink}>Cart {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
-            <Link to="/orders" style={styles.navLink}>My Orders</Link>
-            <button onClick={onLogout} style={styles.logoutBtn}>Logout</button>
+            {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>{t('admin')}</Link>}
+            {user.role === 'VENDOR' && <Link to="/vendor" style={styles.navLink}>{t('myStore')}</Link>}
+            <Link to="/cart" style={styles.navLink}>{t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
+            <Link to="/orders" style={styles.navLink}>{t('myOrders')}</Link>
+            <button onClick={onLogout} style={styles.logoutBtn}>{t('logout')}</button>
           </>
         ) : (
           <>
-            <Link to="/login" style={styles.navLink}>Login</Link>
-            <Link to="/register" style={styles.registerBtn}>Register</Link>
+            <Link to="/login" style={styles.navLink}>{t('login')}</Link>
+            <Link to="/register" style={styles.registerBtn}>{t('register')}</Link>
           </>
         )}
         <button onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')} style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}>{language === 'EN' ? 'AR' : 'EN'}</button>
@@ -192,7 +192,7 @@ function Login({ onLogin }) {
         <input style={styles.input} placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
         <input style={styles.input} type="password" placeholder="Password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
         <button style={styles.submitBtn} onClick={handleSubmit}>Login</button>
-        <p style={{textAlign:'center', marginTop:12}}>No account? <Link to="/register">Register</Link></p>
+        <p style={{textAlign:'center', marginTop:12}}>No account? <Link to="/register">{t('register')}</Link></p>
       </div>
     </div>
   )
@@ -227,7 +227,7 @@ function Register({ onLogin }) {
           <option value="ADMIN">Admin</option>
         </select>
         <button style={styles.submitBtn} onClick={handleSubmit}>Create Account</button>
-        <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">Login</Link></p>
+        <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">{t('login')}</Link></p>
       </div>
     </div>
   )
@@ -1309,6 +1309,8 @@ const styles = {
 }
 
 export default App
+
+
 
 
 
