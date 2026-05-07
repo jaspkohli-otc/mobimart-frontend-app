@@ -132,6 +132,7 @@ function Register({ onLogin }) {
         <select style={styles.input} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
           <option value="CUSTOMER">Customer</option>
           <option value="VENDOR">Vendor</option>
+          <option value="ADMIN">Admin</option>
         </select>
         <button style={styles.submitBtn} onClick={handleSubmit}>Create Account</button>
         <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">Login</Link></p>
