@@ -192,7 +192,7 @@ function Login({ onLogin }) {
         <input style={styles.input} placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
         <input style={styles.input} type="password" placeholder="Password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
         <button style={styles.submitBtn} onClick={handleSubmit}>Login</button>
-        <p style={{textAlign:'center', marginTop:12}}>No account? <Link to="/register">{t('register')}</Link></p>
+        <p style={{textAlign:'center', marginTop:12}}>No account? <Link to="/register">Register</Link></p>
       </div>
     </div>
   )
@@ -227,7 +227,7 @@ function Register({ onLogin }) {
           <option value="ADMIN">Admin</option>
         </select>
         <button style={styles.submitBtn} onClick={handleSubmit}>Create Account</button>
-        <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">{t('login')}</Link></p>
+        <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">Login</Link></p>
       </div>
     </div>
   )
@@ -1309,6 +1309,7 @@ const styles = {
 }
 
 export default App
+
 
 
 
