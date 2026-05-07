@@ -266,8 +266,12 @@ function Register({ onLogin, t = (k) => k }) {
         <select style={styles.input} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
           <option value="CUSTOMER">{t('customer')}</option>
           <option value="VENDOR">{t('vendor')}</option>
-          <option value="ADMIN">{t('adminRole')}</option>
         </select>
+        {form.role === 'VENDOR' && (
+          <div style={{background:'#fff7ed', border:'1px solid #f97316', borderRadius:8, padding:12, marginBottom:12, fontSize:13, color:'#92400e'}}>
+            ⚠️ {t('vendorPendingNote')}
+          </div>
+        )}
         <button style={styles.submitBtn} onClick={handleSubmit}>{t('createAccount')}</button>
         <p style={{textAlign:'center', marginTop:12}}>{t('haveAccount')} <Link to="/login">{t('login')}</Link></p>
       </div>
@@ -834,6 +838,10 @@ function AdminDashboard({ t = (k) => k }) {
   const [payoutMsg, setPayoutMsg] = useState('')
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
+  const [approvingId, setApprovingId] = useState(null)
+  const [subForm, setSubForm] = useState({ vendorId:'', type:'SETUP', amount:1000, note:'' })
+  const [subMsg, setSubMsg] = useState('')
+  const [kycVendors, setKycVendors] = useState([])
 
   const loadData = async () => {
     setLoading(true)
@@ -852,6 +860,10 @@ function AdminDashboard({ t = (k) => k }) {
         const payoutsRes = await vendors.adminGetPayouts()
         setPayoutsData(payoutsRes.data)
       } catch(e) { console.log('payouts error', e) }
+    try {
+      const kycRes = await fetch('/api/vendors/admin/documents', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      setKycVendors(await kycRes.json())
+    } catch(e) {}
     } catch (err) { console.error('Admin load error:', err) }
     setLoading(false)
   }
@@ -875,6 +887,46 @@ function AdminDashboard({ t = (k) => k }) {
     } catch (err) { alert(err.response?.data?.error || t('payoutFailed')) }
   }
 
+  const handleVerifyDoc = async (docId, verified) => {
+    try {
+      const note = !verified ? prompt('Rejection reason (optional):') || '' : ''
+      await fetch('/api/vendors/admin/verify-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ docId, verified, note })
+      })
+      const kycRes = await fetch('/api/vendors/admin/documents', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      setKycVendors(await kycRes.json())
+    } catch { alert('Failed to update document') }
+  }
+
+  const handleVendorApproval = async (vendorId, status, note = '') => {
+    setApprovingId(vendorId)
+    try {
+      await fetch('/api/vendors/admin/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ vendorId, status, rejectionNote: note })
+      })
+      await loadData()
+    } catch (err) { alert('Failed to update vendor status') }
+    setApprovingId(null)
+  }
+
+  const handleAddSubscription = async () => {
+    if (!subForm.vendorId) { alert('Select a vendor'); return }
+    try {
+      await fetch('/api/vendors/admin/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(subForm)
+      })
+      setSubMsg('Subscription added!')
+      setTimeout(() => setSubMsg(''), 3000)
+      await loadData()
+    } catch (err) { alert('Failed to add subscription') }
+  }
+
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
   const roleColor = { CUSTOMER:'#6b7280', VENDOR:'#8b5cf6', ADMIN:'#ef4444' }
   const tabBtn = (key, label) => (
@@ -894,6 +946,9 @@ function AdminDashboard({ t = (k) => k }) {
         {tabBtn('orders', t('allOrders'))}
         {tabBtn('users', t('users'))}
         {tabBtn('vendors', t('vendors'))}
+        {tabBtn('approvals', t('approvals'))}
+        {tabBtn('kyc', t('kycDocuments'))}
+        {tabBtn('subscriptions', t('subscriptions'))}
         {tabBtn('payouts', t('payouts'))}
       </div>
 
@@ -1001,6 +1056,207 @@ function AdminDashboard({ t = (k) => k }) {
         </div>
       )}
 
+      {tab === 'approvals' && (
+        <div>
+          <h3 style={{marginBottom:16}}>{t('vendorApprovals')}</h3>
+          {allVendors.filter(v => v.status === 'PENDING').length === 0 && (
+            <div style={{textAlign:'center', padding:40, color:'#888'}}>
+              <p style={{fontSize:32, marginBottom:8}}>✅</p>
+              <p>{t('noPendingVendors')}</p>
+            </div>
+          )}
+          {allVendors.map(vendor => (
+            <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
+              <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
+                <div>
+                  <p style={{fontWeight:700, fontSize:16}}>🏪 {vendor.storeName}</p>
+                  <p style={{color:'#666', fontSize:13}}>{vendor.user?.name} · {vendor.user?.email}</p>
+                  <p style={{color:'#aaa', fontSize:12}}>📞 {vendor.user?.phone || 'No phone'}</p>
+                  <p style={{fontSize:13, marginTop:6}}>
+                    Registered: {new Date(vendor.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', gap:8, alignItems:'flex-end'}}>
+                  <span style={{
+                    padding:'4px 12px', borderRadius:20, fontSize:13, fontWeight:600,
+                    background: vendor.status === 'APPROVED' ? '#d1fae5' : vendor.status === 'REJECTED' ? '#fee2e2' : '#fff7ed',
+                    color: vendor.status === 'APPROVED' ? '#065f46' : vendor.status === 'REJECTED' ? '#991b1b' : '#92400e'
+                  }}>{vendor.status}</span>
+                  {vendor.status === 'PENDING' && (
+                    <div style={{display:'flex', gap:8}}>
+                      <button onClick={() => handleVendorApproval(vendor.id, 'APPROVED')} disabled={approvingId === vendor.id}
+                        style={{padding:'8px 16px', background:'#10b981', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>
+                        ✓ {t('approve')}
+                      </button>
+                      <button onClick={() => { const note = prompt('Rejection reason (optional):') || ''; handleVendorApproval(vendor.id, 'REJECTED', note) }} disabled={approvingId === vendor.id}
+                        style={{padding:'8px 16px', background:'#ef4444', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>
+                        ✗ {t('reject')}
+                      </button>
+                    </div>
+                  )}
+                  {vendor.status === 'APPROVED' && (
+                    <button onClick={() => { const note = prompt('Rejection reason:') || ''; handleVendorApproval(vendor.id, 'REJECTED', note) }}
+                      style={{padding:'6px 12px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:8, cursor:'pointer', fontSize:12}}>
+                      Revoke
+                    </button>
+                  )}
+                  {vendor.status === 'REJECTED' && (
+                    <button onClick={() => handleVendorApproval(vendor.id, 'APPROVED')}
+                      style={{padding:'6px 12px', background:'#d1fae5', color:'#065f46', border:'none', borderRadius:8, cursor:'pointer', fontSize:12}}>
+                      Re-approve
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'kyc' && (
+        <div>
+          <h3 style={{marginBottom:4}}>{t('kycDocuments')}</h3>
+          <p style={{color:'#888', fontSize:14, marginBottom:24}}>{t('kycNote')}</p>
+          {kycVendors.length === 0 ? (
+            <p style={{color:'#888', textAlign:'center', padding:40}}>{t('noVendors')}</p>
+          ) : kycVendors.map(vendor => (
+            <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:20, background:'#fff'}}>
+              {/* Vendor Header */}
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16, flexWrap:'wrap', gap:8}}>
+                <div>
+                  <p style={{fontWeight:700, fontSize:16}}>🏪 {vendor.storeName}</p>
+                  <p style={{color:'#666', fontSize:13}}>{vendor.user?.name} · {vendor.user?.email}</p>
+                  <p style={{color:'#aaa', fontSize:12}}>📞 {vendor.user?.phone || 'No phone'}</p>
+                </div>
+                <span style={{padding:'4px 12px', borderRadius:20, fontSize:12, fontWeight:600,
+                  background: vendor.status === 'APPROVED' ? '#d1fae5' : vendor.status === 'REJECTED' ? '#fee2e2' : '#fff7ed',
+                  color: vendor.status === 'APPROVED' ? '#065f46' : vendor.status === 'REJECTED' ? '#991b1b' : '#92400e'}}>
+                  {vendor.status}
+                </span>
+              </div>
+
+              {/* Bank Details */}
+              <div style={{background:'#f8f9fa', borderRadius:10, padding:16, marginBottom:16}}>
+                <p style={{fontWeight:600, fontSize:14, marginBottom:10}}>🏦 {t('bankingDetails')}</p>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, fontSize:13}}>
+                  {[
+                    [t('accountHolderName'), vendor.accountHolderName],
+                    [t('bankName'), vendor.bankName],
+                    [t('ibanNumber'), vendor.ibanNumber],
+                    [t('accountNumber'), vendor.accountNumber],
+                    [t('bankBranch'), vendor.bankBranch],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{background:'#fff', padding:'8px 12px', borderRadius:8, border:'1px solid #eee'}}>
+                      <p style={{color:'#888', fontSize:11, marginBottom:2}}>{label}</p>
+                      <p style={{fontWeight:600, color: val ? '#0f1923' : '#ccc'}}>{val || 'Not provided'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Documents */}
+              <p style={{fontWeight:600, fontSize:14, marginBottom:10}}>📄 {t('uploadedDocuments')} ({vendor.documents?.length || 0})</p>
+              {!vendor.documents?.length ? (
+                <p style={{color:'#aaa', fontSize:13, fontStyle:'italic'}}>{t('noDocuments')}</p>
+              ) : vendor.documents.map(doc => (
+                <div key={doc.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 0', borderBottom:'1px solid #f3f3f3'}}>
+                  <div style={{display:'flex', alignItems:'center', gap:10}}>
+                    <span style={{fontSize:20}}>📄</span>
+                    <div>
+                      <p style={{fontWeight:600, fontSize:13}}>{doc.docName}</p>
+                      <p style={{color:'#888', fontSize:11}}>{doc.docType.replace(/_/g,' ')} · {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                      {doc.note && <p style={{color:'#ef4444', fontSize:11}}>{doc.note}</p>}
+                    </div>
+                  </div>
+                  <div style={{display:'flex', alignItems:'center', gap:8}}>
+                    <a href={doc.docUrl} target="_blank" rel="noopener noreferrer"
+                      style={{color:'#f97316', fontSize:12, fontWeight:600, textDecoration:'none'}}>View →</a>
+                    {!doc.verified ? (
+                      <button onClick={() => handleVerifyDoc(doc.id, true)}
+                        style={{padding:'5px 12px', background:'#10b981', color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:600}}>
+                        ✓ Verify
+                      </button>
+                    ) : (
+                      <button onClick={() => handleVerifyDoc(doc.id, false)}
+                        style={{padding:'5px 12px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:6, cursor:'pointer', fontSize:12}}>
+                        Unverify
+                      </button>
+                    )}
+                    <span style={{padding:'3px 8px', borderRadius:10, fontSize:11, fontWeight:600,
+                      background: doc.verified ? '#d1fae5' : '#fff7ed',
+                      color: doc.verified ? '#065f46' : '#92400e'}}>
+                      {doc.verified ? '✓ Verified' : '⏳ Pending'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'subscriptions' && (
+        <div>
+          {subMsg && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16}}>{subMsg}</div>}
+          <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:24, marginBottom:32}}>
+            <h3 style={{marginBottom:16}}>{t('addSubscription')}</h3>
+            <div style={{display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-end'}}>
+              <select value={subForm.vendorId} onChange={e => setSubForm({...subForm, vendorId: e.target.value})}
+                style={{...styles.input, marginBottom:0, minWidth:200}}>
+                <option value="">{t('selectVendor')}</option>
+                {allVendors.filter(v => v.status === 'APPROVED').map(v => (
+                  <option key={v.id} value={v.id}>{v.storeName}</option>
+                ))}
+              </select>
+              <select value={subForm.type} onChange={e => {
+                const amounts = { SETUP: 1000, MONTHLY: 250, ANNUAL: 500 }
+                setSubForm({...subForm, type: e.target.value, amount: amounts[e.target.value]})
+              }} style={{...styles.input, marginBottom:0}}>
+                <option value="SETUP">Setup Fee — QAR 1,000</option>
+                <option value="MONTHLY">Monthly — QAR 250</option>
+                <option value="ANNUAL">Annual Renewal — QAR 500</option>
+              </select>
+              <input style={{...styles.input, marginBottom:0, width:120}} type="number" value={subForm.amount}
+                onChange={e => setSubForm({...subForm, amount: parseFloat(e.target.value)})} />
+              <input style={{...styles.input, marginBottom:0, flex:1}} placeholder="Note (optional)"
+                value={subForm.note} onChange={e => setSubForm({...subForm, note: e.target.value})} />
+              <button onClick={handleAddSubscription} style={{...styles.submitBtn, width:'auto', padding:'12px 20px', marginBottom:0}}>
+                {t('addSubscription')}
+              </button>
+            </div>
+          </div>
+          <h3 style={{marginBottom:16}}>{t('subscriptionPricing')}</h3>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:16, marginBottom:32}}>
+            {[
+              { label:'Setup Fee', amount:'QAR 1,000', icon:'🚀', desc:'One-time store setup', color:'#3b82f6' },
+              { label:'Monthly Fee', amount:'QAR 250', icon:'📅', desc:'Per month subscription', color:'#f97316' },
+              { label:'Annual Renewal', amount:'QAR 500', icon:'🔄', desc:'Yearly renewal discount', color:'#10b981' },
+            ].map(item => (
+              <div key={item.label} style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20, textAlign:'center'}}>
+                <p style={{fontSize:32, marginBottom:8}}>{item.icon}</p>
+                <p style={{fontSize:22, fontWeight:800, color: item.color}}>{item.amount}</p>
+                <p style={{fontWeight:600, marginBottom:4}}>{item.label}</p>
+                <p style={{color:'#888', fontSize:13}}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <h3 style={{marginBottom:16}}>{t('subscriptionHistory')}</h3>
+          {allVendors.filter(v => v.status === 'APPROVED').map(vendor => (
+            vendor.subscriptions?.length > 0 && (
+              <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
+                <p style={{fontWeight:700, marginBottom:12}}>🏪 {vendor.storeName}</p>
+                {vendor.subscriptions.map(sub => (
+                  <div key={sub.id} style={{display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f3f3f3', fontSize:14}}>
+                    <span style={{color:'#666'}}>{sub.type} — {new Date(sub.createdAt).toLocaleDateString()}</span>
+                    <span style={{fontWeight:600, color:'#10b981'}}>QAR {sub.amount}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          ))}
+        </div>
+      )}
+
       {tab === 'payouts' && (
         <div>
           {payoutMsg && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16}}>{payoutMsg}</div>}
@@ -1081,9 +1337,34 @@ function VendorDashboard({ t = (k) => k }) {
   const [earnings, setEarnings] = useState(null)
   const [iban, setIban] = useState('')
   const [ibanMsg, setIbanMsg] = useState('')
+  const [docs, setDocs] = useState([])
+  const [docUploading, setDocUploading] = useState(false)
+  const [docMsg, setDocMsg] = useState('')
+  const [docType, setDocType] = useState('CR_COPY')
+  const [docFile, setDocFile] = useState(null)
+  const [bankForm, setBankForm] = useState({ ibanNumber:'', bankName:'', accountHolderName:'', accountNumber:'', bankBranch:'' })
+  const [bankMsg, setBankMsg] = useState('')
 
   const loadStore = () => {
-    vendors.getMyStore().then(r => { setStore(r.data); setLoading(false) }).catch(() => setLoading(false))
+    vendors.getMyStore().then(r => {
+      setStore(r.data)
+      setLoading(false)
+      // Pre-fill bank form from store data
+      if (r.data) {
+        setBankForm({
+          ibanNumber: r.data.ibanNumber || '',
+          bankName: r.data.bankName || '',
+          accountHolderName: r.data.accountHolderName || '',
+          accountNumber: r.data.accountNumber || '',
+          bankBranch: r.data.bankBranch || '',
+        })
+      }
+    }).catch(() => setLoading(false))
+  }
+
+  const loadDocs = () => {
+    fetch('/api/vendors/documents', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      .then(r => r.json()).then(setDocs).catch(() => {})
   }
 
   const loadEarnings = () => {
@@ -1093,7 +1374,7 @@ function VendorDashboard({ t = (k) => k }) {
     }).catch(() => {})
   }
 
-  useEffect(() => { loadStore(); loadEarnings() }, []) // eslint-disable-line
+  useEffect(() => { loadStore(); loadEarnings(); loadDocs() }, []) // eslint-disable-line
 
   useEffect(() => {
     products.getCategories().then(r => setCategories(r.data)).catch(() => {})
@@ -1116,6 +1397,40 @@ function VendorDashboard({ t = (k) => k }) {
       setIbanMsg(t('ibanSaved'))
       setTimeout(() => setIbanMsg(''), 3000)
     } catch { setIbanMsg(t('ibanFailed')) }
+  }
+
+  const handleUploadDoc = async () => {
+    if (!docFile) { setDocMsg('Please select a file'); return }
+    setDocUploading(true); setDocMsg('')
+    try {
+      const formData = new FormData()
+      formData.append('document', docFile)
+      formData.append('docType', docType)
+      formData.append('docName', docFile.name)
+      const res = await fetch('/api/vendors/documents/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      setDocMsg('Document uploaded successfully!')
+      setDocFile(null)
+      loadDocs()
+    } catch (err) { setDocMsg('Upload failed. Please try again.') }
+    setDocUploading(false)
+  }
+
+  const handleSaveBankDetails = async () => {
+    try {
+      const res = await fetch('/api/vendors/bank-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(bankForm)
+      })
+      if (!res.ok) throw new Error('Failed')
+      setBankMsg('Bank details saved successfully!')
+      setTimeout(() => setBankMsg(''), 3000)
+    } catch { setBankMsg('Failed to save bank details.') }
   }
 
   const handleAddProduct = async () => {
@@ -1169,6 +1484,27 @@ function VendorDashboard({ t = (k) => k }) {
 
   if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
+  // Show pending approval notice
+  if (store && store.status === 'PENDING') return (
+    <div style={{...styles.page, maxWidth:600, textAlign:'center', paddingTop:80}}>
+      <div style={{fontSize:64, marginBottom:24}}>⏳</div>
+      <h2 style={{fontSize:24, fontWeight:700, marginBottom:12, color:'#0f1923'}}>{t('pendingApproval')}</h2>
+      <p style={{color:'#666', fontSize:16, marginBottom:16}}>{t('pendingApprovalMsg')}</p>
+      <div style={{background:'#fff7ed', border:'1px solid #f97316', borderRadius:12, padding:20, fontSize:14, color:'#92400e'}}>
+        {t('subscriptionInfo')}
+      </div>
+    </div>
+  )
+
+  if (store && store.status === 'REJECTED') return (
+    <div style={{...styles.page, maxWidth:600, textAlign:'center', paddingTop:80}}>
+      <div style={{fontSize:64, marginBottom:24}}>❌</div>
+      <h2 style={{fontSize:24, fontWeight:700, marginBottom:12, color:'#ef4444'}}>{t('storeRejected')}</h2>
+      <p style={{color:'#666', marginBottom:12}}>{t('storeRejectedMsg')}</p>
+      {store.rejectionNote && <p style={{background:'#fee2e2', borderRadius:8, padding:12, color:'#991b1b', fontSize:14}}>{store.rejectionNote}</p>}
+    </div>
+  )
+
   if (!store) return (
     <div style={{...styles.page, maxWidth:500}}>
       <h2 style={{marginBottom:24}}>{t('createStore')}</h2>
@@ -1207,6 +1543,8 @@ function VendorDashboard({ t = (k) => k }) {
         {tabBtn('products', t('myProducts'))}
         {tabBtn('add', editingId ? t('editProduct') : t('addProduct'))}
         {tabBtn('bulk', t('bulkUpload'))}
+        {tabBtn('documents', t('myDocuments'))}
+        {tabBtn('banking', t('bankingDetails'))}
         {tabBtn('earnings', t('myEarnings'))}
       </div>
 
@@ -1308,6 +1646,90 @@ function VendorDashboard({ t = (k) => k }) {
           <button onClick={handleBulkUpload} disabled={saving || !excelFile} style={{...styles.submitBtn, opacity: saving || !excelFile ? 0.7 : 1}}>
             {saving ? t('uploading') : t('uploadProducts')}
           </button>
+        </div>
+      )}
+
+      {tab === 'documents' && (
+        <div style={{maxWidth:700}}>
+          <h3 style={{marginBottom:8, fontSize:18, fontWeight:700}}>{t('myDocuments')}</h3>
+          <p style={{color:'#888', fontSize:14, marginBottom:24}}>{t('documentsNote')}</p>
+
+          {/* Upload Section */}
+          <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:24, marginBottom:24}}>
+            <h4 style={{marginBottom:16, fontWeight:600}}>{t('uploadDocument')}</h4>
+            {docMsg && <div style={{padding:'10px 14px', borderRadius:8, marginBottom:16, background: docMsg.includes('success') ? '#d1fae5' : '#fee2e2', color: docMsg.includes('success') ? '#065f46' : '#991b1b', fontSize:14}}>{docMsg}</div>}
+            <select style={styles.input} value={docType} onChange={e => setDocType(e.target.value)}>
+              <option value="CR_COPY">{t('crCopy')}</option>
+              <option value="TRADE_LICENSE">{t('tradeLicense')}</option>
+              <option value="SIGNATORY_QID">{t('signatoryQID')}</option>
+              <option value="OTHER">{t('otherDoc')}</option>
+            </select>
+            <div style={{border:'2px dashed #ddd', borderRadius:12, padding:24, textAlign:'center', cursor:'pointer', marginBottom:12}}
+              onClick={() => document.getElementById('docInput').click()}>
+              {docFile
+                ? <p style={{color:'#065f46', fontWeight:600}}>📎 {docFile.name}</p>
+                : <div><p style={{fontSize:32, marginBottom:8}}>📄</p><p style={{color:'#888'}}>{t('clickToUploadDoc')}</p><p style={{color:'#aaa', fontSize:12, marginTop:4}}>PDF, JPG, PNG — max 10MB</p></div>
+              }
+              <input id="docInput" type="file" accept=".pdf,.jpg,.jpeg,.png" style={{display:'none'}} onChange={e => setDocFile(e.target.files[0])} />
+            </div>
+            <button onClick={handleUploadDoc} disabled={docUploading || !docFile}
+              style={{...styles.submitBtn, opacity: docUploading || !docFile ? 0.7 : 1}}>
+              {docUploading ? t('uploading') : t('uploadDocument')}
+            </button>
+          </div>
+
+          {/* Uploaded Documents */}
+          <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:24}}>
+            <h4 style={{marginBottom:16, fontWeight:600}}>{t('uploadedDocuments')}</h4>
+            {docs.length === 0 ? (
+              <p style={{color:'#888', textAlign:'center', padding:24}}>{t('noDocuments')}</p>
+            ) : docs.map(doc => (
+              <div key={doc.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid #f3f3f3'}}>
+                <div style={{display:'flex', alignItems:'center', gap:12}}>
+                  <span style={{fontSize:24}}>📄</span>
+                  <div>
+                    <p style={{fontWeight:600, fontSize:14}}>{doc.docName}</p>
+                    <p style={{color:'#888', fontSize:12}}>{doc.docType.replace('_', ' ')} · {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:10}}>
+                  <span style={{padding:'3px 10px', borderRadius:20, fontSize:12, fontWeight:600,
+                    background: doc.verified ? '#d1fae5' : '#fff7ed',
+                    color: doc.verified ? '#065f46' : '#92400e'}}>
+                    {doc.verified ? '✓ Verified' : '⏳ Pending'}
+                  </span>
+                  <a href={doc.docUrl} target="_blank" rel="noopener noreferrer"
+                    style={{color:'#f97316', fontSize:13, textDecoration:'none', fontWeight:600}}>View →</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'banking' && (
+        <div style={{maxWidth:600}}>
+          <h3 style={{marginBottom:8, fontSize:18, fontWeight:700}}>{t('bankingDetails')}</h3>
+          <p style={{color:'#888', fontSize:14, marginBottom:24}}>{t('bankingNote')}</p>
+          <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:24}}>
+            {bankMsg && <div style={{padding:'10px 14px', borderRadius:8, marginBottom:16, background: bankMsg.includes('success') ? '#d1fae5' : '#fee2e2', color: bankMsg.includes('success') ? '#065f46' : '#991b1b', fontSize:14}}>{bankMsg}</div>}
+            <div style={{display:'grid', gap:0}}>
+              <label style={{fontSize:13, fontWeight:600, color:'#555', marginBottom:4}}>{t('accountHolderName')} *</label>
+              <input style={styles.input} placeholder="e.g. Mohammed Al-Rashidi" value={bankForm.accountHolderName} onChange={e => setBankForm({...bankForm, accountHolderName: e.target.value})} />
+              <label style={{fontSize:13, fontWeight:600, color:'#555', marginBottom:4}}>{t('bankName')} *</label>
+              <input style={styles.input} placeholder="e.g. Qatar National Bank (QNB)" value={bankForm.bankName} onChange={e => setBankForm({...bankForm, bankName: e.target.value})} />
+              <label style={{fontSize:13, fontWeight:600, color:'#555', marginBottom:4}}>{t('ibanNumber')} *</label>
+              <input style={styles.input} placeholder="QA57 DOHB 0000 1234 5678 90AB CDEF" value={bankForm.ibanNumber} onChange={e => setBankForm({...bankForm, ibanNumber: e.target.value})} />
+              <label style={{fontSize:13, fontWeight:600, color:'#555', marginBottom:4}}>{t('accountNumber')}</label>
+              <input style={styles.input} placeholder="Account number" value={bankForm.accountNumber} onChange={e => setBankForm({...bankForm, accountNumber: e.target.value})} />
+              <label style={{fontSize:13, fontWeight:600, color:'#555', marginBottom:4}}>{t('bankBranch')}</label>
+              <input style={styles.input} placeholder="e.g. West Bay Branch, Doha" value={bankForm.bankBranch} onChange={e => setBankForm({...bankForm, bankBranch: e.target.value})} />
+            </div>
+            <button onClick={handleSaveBankDetails} style={styles.submitBtn}>{t('saveBankDetails')}</button>
+          </div>
+          <div style={{background:'#fff7ed', border:'1px solid #f97316', borderRadius:10, padding:14, marginTop:16, fontSize:13, color:'#92400e'}}>
+            🔒 {t('bankingSecurityNote')}
+          </div>
         </div>
       )}
 
