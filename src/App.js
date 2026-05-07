@@ -83,7 +83,7 @@ function Login({ onLogin }) {
       const res = await auth.login(form)
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
-      navigate('/')
+      window.location.href = '/'
     } catch {
       setError('Invalid email or password')
     }
@@ -114,7 +114,7 @@ function Register({ onLogin }) {
       const res = await auth.register(form)
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
-      navigate('/')
+      window.location.href = '/'
     } catch {
       setError('Registration failed. Email may already exist.')
     }
