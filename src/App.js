@@ -499,6 +499,7 @@ function ProductDetail({ user }) {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [added, setAdded] = useState(false)
+  const [showCartModal, setShowCartModal] = useState(false)
   const [reviews, setReviews] = useState([])
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -519,6 +520,7 @@ function ProductDetail({ user }) {
     try {
       await cart.add({ productId: id, quantity: 1 })
       setAdded(true)
+      setShowCartModal(true)
       setTimeout(() => setAdded(false), 3000)
     } catch { alert('Please login to add to cart') }
   }
