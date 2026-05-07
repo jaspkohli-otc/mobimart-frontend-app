@@ -500,8 +500,6 @@ function ProductDetail({ user }) {
   const [loading, setLoading] = useState(true)
   const [added, setAdded] = useState(false)
   const [showCartModal, setShowCartModal] = useState(false)
-  const [showCartModal, setShowCartModal] = useState(false)
-  const [showCartModal, setShowCartModal] = useState(false)
   const [reviews, setReviews] = useState([])
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
