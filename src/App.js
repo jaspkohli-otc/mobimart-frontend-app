@@ -500,6 +500,8 @@ function ProductDetail({ user }) {
   const [loading, setLoading] = useState(true)
   const [added, setAdded] = useState(false)
   const [showCartModal, setShowCartModal] = useState(false)
+  const [showCartModal, setShowCartModal] = useState(false)
+  const [showCartModal, setShowCartModal] = useState(false)
   const [reviews, setReviews] = useState([])
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -520,6 +522,7 @@ function ProductDetail({ user }) {
     try {
       await cart.add({ productId: id, quantity: 1 })
       setAdded(true)
+      setShowCartModal(true)
       setShowCartModal(true)
       setTimeout(() => setAdded(false), 3000)
     } catch { alert('Please login to add to cart') }
@@ -564,9 +567,23 @@ function ProductDetail({ user }) {
   const imgSrc = product.images?.[0] ? (product.images[0].startsWith('http') ? product.images[0] : `http://localhost:3000${product.images[0]}`) : null
   const userReview = reviews.find(r => r.userId === user?.id)
   const cond = conditionLabel(product.condition)
+  const cartModal = showCartModal && (
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{background:'#fff',borderRadius:16,padding:40,maxWidth:400,width:'90%',textAlign:'center'}}>
+        <div style={{fontSize:48,marginBottom:16}}>✅</div>
+        <h3 style={{marginBottom:8,fontSize:22}}>Added to Cart!</h3>
+        <p style={{color:'#666',marginBottom:24}}>Item added to your cart</p>
+        <div style={{display:'flex',gap:12}}>
+          <button onClick={()=>setShowCartModal(false)} style={{flex:1,padding:'12px',border:'2px solid #f97316',borderRadius:8,background:'#fff',color:'#f97316',fontWeight:600,cursor:'pointer'}}>Continue Shopping</button>
+          <button onClick={()=>{setShowCartModal(false);window.location.href='/checkout'}} style={{flex:1,padding:'12px',border:'none',borderRadius:8,background:'#f97316',color:'#fff',fontWeight:600,cursor:'pointer'}}>Go to Checkout</button>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{...styles.page, maxWidth:800}}>
+      {cartModal}
       <div style={{display:'flex', gap:40, flexWrap:'wrap', marginBottom:40}}>
         <div style={{width:200, height:200, background:'#f8f9fa', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:80, overflow:'hidden'}}>
           {imgSrc ? <img src={imgSrc} alt={product.name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : '📱'}
