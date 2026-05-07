@@ -11,8 +11,6 @@ function Navbar({ user, cartCount, onLogout }) {
         <Link to="/products" style={styles.navLink}>Shop</Link>
         {user ? (
           <>
-          {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>Admin</Link>}
-{user.role === 'VENDOR' && <Link to="/vendor" style={styles.navLink}>My Store</Link>}
             <Link to="/cart" style={styles.navLink}>🛒 Cart {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
             <Link to="/orders" style={styles.navLink}>My Orders</Link>
             <button onClick={onLogout} style={styles.logoutBtn}>Logout</button>
@@ -77,7 +75,7 @@ function Products() {
 function Login({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
-  const navigate = useNavigate()// eslint-disable-line
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -85,7 +83,7 @@ function Login({ onLogin }) {
       const res = await auth.login(form)
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
-      window.location.href = '/'
+      navigate('/')
     } catch {
       setError('Invalid email or password')
     }
@@ -108,7 +106,7 @@ function Login({ onLogin }) {
 function Register({ onLogin }) {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'CUSTOMER' })
   const [error, setError] = useState('')
-  const navigate = useNavigate()// eslint-disable-line
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -116,7 +114,7 @@ function Register({ onLogin }) {
       const res = await auth.register(form)
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
-      window.location.href = '/'
+      navigate('/')
     } catch {
       setError('Registration failed. Email may already exist.')
     }
@@ -134,7 +132,6 @@ function Register({ onLogin }) {
         <select style={styles.input} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
           <option value="CUSTOMER">Customer</option>
           <option value="VENDOR">Vendor</option>
-          <option value="ADMIN">Admin</option>
         </select>
         <button style={styles.submitBtn} onClick={handleSubmit}>Create Account</button>
         <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">Login</Link></p>
@@ -146,7 +143,7 @@ function Register({ onLogin }) {
 function Cart() {
   const [cartData, setCartData] = useState({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()// eslint-disable-line
+  const navigate = useNavigate()
 
   const loadCart = () => {
     cart.get().then(r => { setCartData(r.data); setLoading(false) })
@@ -288,7 +285,7 @@ function ProductDetail() {
 
 function App() {
   const [user, setUser] = useState(null)
-  const [cartCount, setCartCount] = useState(0) // eslint-disable-line
+  const [cartCount, setCartCount] = useState(0)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
