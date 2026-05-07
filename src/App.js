@@ -89,13 +89,35 @@ function Products({ t = (k) => k, language = 'EN' }) {
   }
 
   return (
-    <div style={styles.page}>
-      {/* Page Header */}
-      <div style={{marginBottom:24}}>
-        <h1 style={{fontSize:26, fontWeight:800, color:'#0f1923', marginBottom:4}}>{t('shop')}</h1>
-        <p style={{color:'#888', fontSize:14}}>{t('heroSub')}</p>
+    <div style={{background:'#f8f9fa', minHeight:'100vh'}}>
+
+      {/* Hero Banner */}
+      <div style={{background:'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)', padding:'40px 32px', marginBottom:32, position:'relative', overflow:'hidden'}}>
+        <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, display:'flex', flexWrap:'wrap', opacity:0.06, pointerEvents:'none', overflow:'hidden', alignContent:'flex-start'}}>
+          {['📱','💻','🎧','⌨️','🖱️','📷','🔋','🎮','⌚','🖥️','📡','💾'].map((emoji, i) => (
+            Array.from({length:8}).map((_, j) => (
+              <span key={i+'-'+j} style={{fontSize:44, padding:'10px 14px', display:'inline-block'}}>{emoji}</span>
+            ))
+          ))}
+        </div>
+        <div style={{position:'relative', zIndex:1, maxWidth:1100, margin:'0 auto'}}>
+          <p style={{color:'#f97316', fontSize:13, fontWeight:600, letterSpacing:2, marginBottom:8, textTransform:'uppercase'}}>by JASPR Trading</p>
+          <h1 style={{fontSize:36, fontWeight:800, color:'#fff', marginBottom:10, lineHeight:1.2}}>{t('heroTitle')}</h1>
+          <p style={{color:'#94a3b8', fontSize:16, marginBottom:24}}>{t('heroSub')}</p>
+          <div style={{display:'flex', gap:16, flexWrap:'wrap'}}>
+            {[['📱','500+','Products'],['🏪','50+','Vendors'],['⭐','4.8','Avg Rating'],['🚚','Free','Delivery']].map(([icon,val,label]) => (
+              <div key={label} style={{background:'rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 20px', textAlign:'center'}}>
+                <div style={{fontSize:20}}>{icon}</div>
+                <div style={{color:'#f97316', fontWeight:800, fontSize:18}}>{val}</div>
+                <div style={{color:'#94a3b8', fontSize:11}}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <input style={styles.search} placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
+
+      <div style={{maxWidth:1100, margin:'0 auto', padding:'0 32px 32px'}}>
+      <input style={{...styles.search, background:'#fff', boxShadow:'0 2px 8px rgba(0,0,0,0.08)'}} placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
         <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
           style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
@@ -185,6 +207,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }
