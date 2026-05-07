@@ -285,7 +285,7 @@ function ProductDetail() {
 
 function App() {
   const [user, setUser] = useState(null)
-  const [cartCount, setCartCount] = useState(0)
+  const [cartCount, setCartCount] = useState(0) // eslint-disable-line
 
   useEffect(() => {
     const token = localStorage.getItem('token')
