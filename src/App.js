@@ -54,7 +54,7 @@ function Home() {
   )
 }
 
-function Products() {
+function Products({ t = (k) => k, language = 'EN' }) {
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -90,27 +90,27 @@ function Products() {
 
   return (
     <div style={styles.page}>
-      <input style={styles.search} placeholder="Search phones, accessories..." value={search} onChange={e => setSearch(e.target.value)} />
+      <input style={styles.search} placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
         <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
           style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
-          <option value="">All Categories</option>
+          <option value="">{t('allCategories')}</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select value={selectedCondition} onChange={e => setSelectedCondition(e.target.value)}
           style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:140}}>
-          <option value="">All Conditions</option>
-          <option value="NEW">New</option>
-          <option value="LIKE_NEW">Like New</option>
-          <option value="GOOD">Good</option>
-          <option value="FAIR">Fair</option>
+          <option value="">{t('allConditions')}</option>
+          <option value="NEW">{t('conditionNew')}</option>
+          <option value="LIKE_NEW">{t('conditionLikeNew')}</option>
+          <option value="GOOD">{t('conditionGood')}</option>
+          <option value="FAIR">{t('conditionFair')}</option>
         </select>
         <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}}
-          placeholder="Min price" type="number" value={priceRange.min}
+          placeholder={t('minPrice')} type="number" value={priceRange.min}
           onChange={e => setPriceRange({...priceRange, min: e.target.value})} />
         <span style={{color:'#666'}}>to</span>
         <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}}
-          placeholder="Max price" type="number" value={priceRange.max}
+          placeholder={t('maxPrice')} type="number" value={priceRange.max}
           onChange={e => setPriceRange({...priceRange, max: e.target.value})} />
         {(selectedCategory || priceRange.min || priceRange.max || search || selectedCondition) && (
           <button onClick={clearFilters}
@@ -140,8 +140,8 @@ function Products() {
       )}
       {loading ? <p>Loading...</p> : filtered.length === 0 ? (
         <div style={{textAlign:'center', padding:60}}>
-          <p style={{color:'#666', marginBottom:16}}>No products found</p>
-          <button onClick={clearFilters} style={styles.heroBtn}>Clear Filters</button>
+          <p style={{color:'#666', marginBottom:16}}>{t('noProducts')}</p>
+          <button onClick={clearFilters} style={styles.heroBtn}>{t('clearFilters')}</button>
         </div>
       ) : (
         <div style={styles.grid}>
@@ -159,7 +159,7 @@ function Products() {
                   </div>
                   <h3 style={styles.cardName}>{p.name}</h3>
                   <p style={styles.cardPrice}>{formatQAR(p.price)}</p>
-                  <Link to={`/products/${p.id}`} style={styles.cardBtn}>View Details</Link>
+                  <Link to={`/products/${p.id}`} style={styles.cardBtn}>{t('viewDetails')}</Link>
                 </div>
               </div>
             )
@@ -1094,10 +1094,10 @@ function VendorDashboard() {
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select style={styles.input} value={form.condition} onChange={e => setForm({...form, condition: e.target.value})}>
-            <option value="NEW">New</option>
-            <option value="LIKE_NEW">Like New</option>
-            <option value="GOOD">Good</option>
-            <option value="FAIR">Fair</option>
+            <option value="NEW">{t('conditionNew')}</option>
+            <option value="LIKE_NEW">{t('conditionLikeNew')}</option>
+            <option value="GOOD">{t('conditionGood')}</option>
+            <option value="FAIR">{t('conditionFair')}</option>
           </select>
           <div style={{marginBottom:12}}>
             <p style={{fontWeight:600, marginBottom:8, fontSize:14}}>Product Image</p>
@@ -1268,7 +1268,7 @@ function App() {
       <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} language={language} setLanguage={setLanguage} t={t} />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/products" element={<Products />} />
+        <Route path="/products" element={<Products t={t} language={language} />} />
         <Route path="/products/:id" element={<ProductDetail user={user} />} />
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="/register" element={<Register onLogin={setUser} />} />
@@ -1318,6 +1318,9 @@ const styles = {
 }
 
 export default App
+
+
+
 
 
 
