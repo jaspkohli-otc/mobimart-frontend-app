@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom'
 import { auth, products, cart, orders, vendors } from './api'
 import './App.css'
+import translations from './translations';
 
 const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
 
@@ -13,7 +14,7 @@ const conditionLabel = (c) => {
   return { text: 'New', bg: '#d1fae5', color: '#065f46' }
 }
 
-function Navbar({ user, cartCount, onLogout }) {
+function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
   return (
     <nav style={styles.nav}>
       <Link to="/" style={styles.logo}>
@@ -21,7 +22,7 @@ function Navbar({ user, cartCount, onLogout }) {
         <span style={{fontSize:11, color:'#94a3b8', fontWeight:400, marginLeft:8}}>by JASPR Trading</span>
       </Link>
       <div style={styles.navLinks}>
-        <Link to="/products" style={styles.navLink}>Shop</Link>
+        <Link to="/products" style={styles.navLink}>{t('shop')}</Link>
         {user ? (
           <>
             {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>Admin</Link>}
@@ -36,7 +37,8 @@ function Navbar({ user, cartCount, onLogout }) {
             <Link to="/register" style={styles.registerBtn}>Register</Link>
           </>
         )}
-      </div>
+        <button onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')} style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}>{language === 'EN' ? 'AR' : 'EN'}</button>
+    </div>
     </nav>
   )
 }
@@ -1222,6 +1224,9 @@ function CreateStore({ onCreated }) {
 }
 
 function App() {
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'EN')
+  const t = (key) => translations[language][key] || key
+  useEffect(() => { document.documentElement.dir = language === 'AR' ? 'rtl' : 'ltr'; document.documentElement.lang = language === 'AR' ? 'ar' : 'en'; localStorage.setItem('language', language) }, [language])
   const [user, setUser] = useState(null)
   const [cartCount, setCartCount] = useState(0) // eslint-disable-line
 
@@ -1251,7 +1256,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} />
+      <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} language={language} setLanguage={setLanguage} t={t} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
@@ -1304,3 +1309,8 @@ const styles = {
 }
 
 export default App
+
+
+
+
+
