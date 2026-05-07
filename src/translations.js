@@ -80,6 +80,13 @@ const translations = {
     storeDescription: "Store Description", storeNameRequired: "Store name is required",
     createStoreFailed: "Failed to create store", creating: "Creating...",
     createMyStore: "Create My Store",
+    soldBy: "Sold by", inclVAT: "Inclusive of VAT", condition: "Condition",
+    category: "Category", reviews: "reviews", verifiedBuyer: "Verified Buyer",
+    freeDelivery: "Free delivery — estimated 2–4 days",
+    buyerProtection: "Secure payment & buyer protection",
+    easyReturns: "Easy returns within 7 days",
+    verifiedSeller: "Verified Seller", shipsIn24h: "Ships in 24h",
+    shipsQatar: "Ships within Qatar",
   },
   AR: {
     shop: "تسوق", login: "تسجيل الدخول", register: "إنشاء حساب", myOrders: "طلباتي",
@@ -162,6 +169,13 @@ const translations = {
     storeDescription: "وصف المتجر", storeNameRequired: "اسم المتجر مطلوب",
     createStoreFailed: "فشل إنشاء المتجر", creating: "جار الإنشاء...",
     createMyStore: "إنشاء متجري",
+    soldBy: "يباع بواسطة", inclVAT: "شامل ضريبة القيمة المضافة", condition: "الحالة",
+    category: "الفئة", reviews: "تقييمات", verifiedBuyer: "مشترٍ موثق",
+    freeDelivery: "توصيل مجاني — خلال 2-4 أيام",
+    buyerProtection: "دفع آمن وحماية المشتري",
+    easyReturns: "إرجاع سهل خلال 7 أيام",
+    verifiedSeller: "بائع موثق", shipsIn24h: "يشحن خلال 24 ساعة",
+    shipsQatar: "يشحن داخل قطر",
   },
 };
 

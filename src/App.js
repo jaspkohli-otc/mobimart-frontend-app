@@ -501,7 +501,9 @@ function ProductDetail({ user, t = (k) => k }) {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [added, setAdded] = useState(false)
+  const [qty, setQty] = useState(1)
   const [showCartModal, setShowCartModal] = useState(false)
+  const [selectedImg, setSelectedImg] = useState(0)
   const [reviews, setReviews] = useState([])
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -520,7 +522,7 @@ function ProductDetail({ user, t = (k) => k }) {
   const handleAddToCart = async () => {
     if (added) return
     try {
-      await cart.add({ productId: id, quantity: 1 })
+      await cart.add({ productId: id, quantity: qty })
       setAdded(true)
       setShowCartModal(true)
       setTimeout(() => setAdded(false), 3000)
@@ -563,9 +565,13 @@ function ProductDetail({ user, t = (k) => k }) {
   if (loading) return <p style={{padding:40}}>{t('loading')}</p>
   if (!product) return <p style={{padding:40}}>{t('productNotFound')}</p>
 
-  const imgSrc = product.images?.[0] ? (product.images[0].startsWith('http') ? product.images[0] : `http://localhost:3000${product.images[0]}`) : null
+  const images = product.images?.length > 0 ? product.images : [null]
+  const getImgSrc = (img) => img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
   const userReview = reviews.find(r => r.userId === user?.id)
   const cond = conditionLabel(product.condition)
+  const avgRating = Math.round(product.avgRating || 0)
+  const ratingCounts = [5,4,3,2,1].map(star => reviews.filter(r => r.rating === star).length)
+
   const cartModal = showCartModal && (
     <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{background:'#fff',borderRadius:16,padding:40,maxWidth:400,width:'90%',textAlign:'center'}}>
@@ -581,71 +587,194 @@ function ProductDetail({ user, t = (k) => k }) {
   )
 
   return (
-    <div style={{...styles.page, maxWidth:800}}>
+    <div style={{...styles.page, maxWidth:1000}}>
       {cartModal}
-      <div style={{display:'flex', gap:40, flexWrap:'wrap', marginBottom:40}}>
-        <div style={{width:200, height:200, background:'#f8f9fa', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:80, overflow:'hidden'}}>
-          {imgSrc ? <img src={imgSrc} alt={product.name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : '📱'}
+
+      {/* Main product grid */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:40, marginBottom:40, flexWrap:'wrap'}}>
+
+        {/* Left — Images */}
+        <div>
+          <div style={{width:'100%', aspectRatio:'1', background:'#f8f9fa', borderRadius:12, border:'1px solid #eee', display:'flex', alignItems:'center', justifyContent:'center', fontSize:100, overflow:'hidden', marginBottom:12}}>
+            {getImgSrc(images[selectedImg])
+              ? <img src={getImgSrc(images[selectedImg])} alt={product.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+              : '📱'}
+          </div>
+          {images.length > 1 && (
+            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+              {images.map((img, i) => (
+                <div key={i} onClick={() => setSelectedImg(i)}
+                  style={{width:60, height:60, borderRadius:8, border: selectedImg === i ? '2px solid #f97316' : '1px solid #eee', background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, overflow:'hidden', cursor:'pointer'}}>
+                  {getImgSrc(img) ? <img src={getImgSrc(img)} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : '📱'}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div style={{flex:1}}>
-          <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
-            <p style={{color:'#888'}}>{product.vendor?.storeName} - {product.category?.name}</p>
-            <span style={{padding:'2px 10px', borderRadius:6, fontSize:13, fontWeight:600, background: cond.bg, color: cond.color}}>{cond.text}</span>
+
+        {/* Right — Details */}
+        <div>
+          <span style={{display:'inline-block', padding:'3px 10px', borderRadius:6, fontSize:12, fontWeight:600, background: cond.bg, color: cond.color, marginBottom:10}}>{cond.text}</span>
+          <h1 style={{fontSize:22, fontWeight:600, lineHeight:1.4, marginBottom:8, color:'#0f1923'}}>{product.name}</h1>
+          <p style={{color:'#888', fontSize:13, marginBottom:10}}>
+            {t('soldBy')} <span style={{color:'#f97316', fontWeight:600}}>{product.vendor?.storeName}</span> &nbsp;·&nbsp; {product.category?.name}
+          </p>
+
+          {/* Stars */}
+          <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:14}}>
+            {renderStars(avgRating)}
+            <span style={{color:'#f97316', fontSize:14, fontWeight:600}}>{product.avgRating > 0 ? product.avgRating.toFixed(1) : ''}</span>
+            <span style={{color:'#888', fontSize:13}}>{reviews.length > 0 ? `${reviews.length} ${t('reviews')}` : t('noRatings')}</span>
           </div>
-          <h1 style={{fontSize:28, marginBottom:8}}>{product.name}</h1>
-          <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
-            {renderStars(Math.round(product.avgRating || 0))}
-            <span style={{color:'#666', fontSize:14}}>{product.avgRating > 0 ? `${product.avgRating} / 5` : t('noRatings')}</span>
+
+          {/* Price */}
+          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:4}}>
+            <span style={{fontSize:32, fontWeight:700, color:'#f97316'}}>{formatQAR(product.price)}</span>
           </div>
-          <p style={{color:'#f97316', fontSize:32, fontWeight:700, marginBottom:16}}>{formatQAR(product.price)}</p>
-          <p style={{color:'#555', lineHeight:1.7, marginBottom:24}}>{product.description}</p>
-          <p style={{color:'#888', marginBottom:20}}>{t('inStock')}: {product.stockQty} {t('units')}</p>
-          <button onClick={handleAddToCart} disabled={added} style={{...styles.submitBtn, width:'auto', padding:'14px 32px', background: added ? '#10b981' : '#f97316', cursor: added ? 'default' : 'pointer'}}>
-            {added ? t('addedToCart') : t('addToCart')}
+          <p style={{fontSize:12, color:'#888', marginBottom:16}}>{t('inclVAT')}</p>
+
+          <div style={{height:1, background:'#eee', marginBottom:16}} />
+
+          {/* Specs */}
+          <div style={{marginBottom:16}}>
+            {[
+              [t('condition'), cond.text],
+              [t('inStock'), `${product.stockQty} ${t('units')}`],
+              [t('category'), product.category?.name],
+            ].map(([label, val]) => (
+              <div key={label} style={{display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:'1px solid #f3f3f3', fontSize:14}}>
+                <span style={{color:'#888'}}>{label}</span>
+                <span style={{fontWeight:600, color: label === t('inStock') ? '#10b981' : '#0f1923'}}>{val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Description */}
+          {product.description && (
+            <p style={{color:'#555', lineHeight:1.8, fontSize:14, marginBottom:16}}>{product.description}</p>
+          )}
+
+          {/* Qty */}
+          <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
+            <span style={{fontSize:14, color:'#666'}}>{t('qty')}:</span>
+            <button onClick={() => setQty(q => Math.max(1, q-1))} style={{width:32, height:32, borderRadius:8, border:'1px solid #ddd', background:'#f8f9fa', cursor:'pointer', fontSize:18, fontWeight:600}}>−</button>
+            <span style={{fontSize:16, fontWeight:600, minWidth:24, textAlign:'center'}}>{qty}</span>
+            <button onClick={() => setQty(q => Math.min(product.stockQty, q+1))} style={{width:32, height:32, borderRadius:8, border:'1px solid #ddd', background:'#f8f9fa', cursor:'pointer', fontSize:18, fontWeight:600}}>+</button>
+          </div>
+
+          {/* Buttons */}
+          <button onClick={handleAddToCart} disabled={added}
+            style={{width:'100%', padding:'14px', background: added ? '#10b981' : '#f97316', color:'#fff', border:'none', borderRadius:10, fontSize:16, fontWeight:700, cursor: added ? 'default' : 'pointer', marginBottom:10, transition:'background 0.2s'}}>
+            {added ? `✓ ${t('addedToCart')}` : t('addToCart')}
           </button>
+
+          {/* Delivery & Trust */}
+          <div style={{background:'#f8f9fa', borderRadius:10, padding:14, marginTop:4}}>
+            {[
+              ['🚚', t('freeDelivery')],
+              ['🛡️', t('buyerProtection')],
+              ['↩️', t('easyReturns')],
+            ].map(([icon, text]) => (
+              <div key={text} style={{display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#555', padding:'4px 0'}}>
+                <span>{icon}</span><span>{text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust badges */}
+          <div style={{display:'flex', gap:16, marginTop:12, flexWrap:'wrap'}}>
+            {[
+              ['✅', t('verifiedSeller')],
+              ['⚡', t('shipsIn24h')],
+              ['📍', t('shipsQatar')],
+            ].map(([icon, text]) => (
+              <div key={text} style={{display:'flex', alignItems:'center', gap:4, fontSize:12, color:'#666'}}>
+                <span>{icon}</span><span>{text}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      <div style={{borderTop:'1px solid #eee', paddingTop:32}}>
-        <h2 style={{marginBottom:24}}>{t('customerReviews')}</h2>
-        {user && !userReview && (
-          <div style={{background:'#f8f9fa', borderRadius:12, padding:24, marginBottom:32}}>
-            <h3 style={{marginBottom:16}}>{t('writeReview')}</h3>
-            {reviewError && <p style={{color:'#ef4444', marginBottom:12}}>{reviewError}</p>}
-            {reviewSuccess && <p style={{color:'#10b981', marginBottom:12}}>{reviewSuccess}</p>}
-            <div style={{marginBottom:16}}>
-              <p style={{marginBottom:8, fontWeight:500}}>{t('yourRating')}</p>
-              {renderStars(reviewForm.rating, true, (star) => setReviewForm({...reviewForm, rating: star}))}
+
+      {/* Reviews Section */}
+      <div style={{borderTop:'2px solid #f3f3f3', paddingTop:32}}>
+        <h2 style={{fontSize:20, fontWeight:700, marginBottom:24, color:'#0f1923'}}>{t('customerReviews')}</h2>
+
+        {/* Rating summary */}
+        {reviews.length > 0 && (
+          <div style={{display:'flex', gap:32, alignItems:'center', marginBottom:28, background:'#f8f9fa', borderRadius:12, padding:24, flexWrap:'wrap'}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:48, fontWeight:700, color:'#f97316', lineHeight:1}}>{product.avgRating?.toFixed(1) || '0'}</div>
+              <div style={{marginTop:6}}>{renderStars(avgRating)}</div>
+              <div style={{fontSize:13, color:'#888', marginTop:4}}>{reviews.length} {t('reviews')}</div>
             </div>
-            <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder={t('shareExperience')} value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
+            <div style={{flex:1, minWidth:160}}>
+              {[5,4,3,2,1].map((star, i) => (
+                <div key={star} style={{display:'flex', alignItems:'center', gap:8, marginBottom:5}}>
+                  <span style={{fontSize:12, color:'#888', minWidth:28}}>{star} ★</span>
+                  <div style={{flex:1, height:6, background:'#e5e7eb', borderRadius:3, overflow:'hidden'}}>
+                    <div style={{height:'100%', background:'#f97316', borderRadius:3, width: reviews.length > 0 ? `${(ratingCounts[i]/reviews.length)*100}%` : '0%'}} />
+                  </div>
+                  <span style={{fontSize:12, color:'#888', minWidth:16}}>{ratingCounts[i]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Write review */}
+        {user && !userReview && (
+          <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:24, marginBottom:24}}>
+            <h3 style={{marginBottom:16, fontSize:16, fontWeight:600}}>{t('writeReview')}</h3>
+            {reviewError && <p style={{color:'#ef4444', marginBottom:12, fontSize:14}}>{reviewError}</p>}
+            {reviewSuccess && <p style={{color:'#10b981', marginBottom:12, fontSize:14}}>{reviewSuccess}</p>}
+            <p style={{marginBottom:8, fontWeight:600, fontSize:14}}>{t('yourRating')}</p>
+            {renderStars(reviewForm.rating, true, (star) => setReviewForm({...reviewForm, rating: star}))}
+            <textarea style={{...styles.input, height:100, resize:'vertical', marginTop:12}} placeholder={t('shareExperience')} value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
             <button onClick={handleSubmitReview} disabled={submitting} style={{...styles.submitBtn, opacity: submitting ? 0.7 : 1}}>
               {submitting ? t('submitting') : t('submitReview')}
             </button>
           </div>
         )}
+
+        {/* User's own review */}
         {userReview && (
-          <div style={{background:'#fff7ed', border:'1px solid #f97316', borderRadius:12, padding:20, marginBottom:24}}>
-            <div style={{display:'flex', justifyContent:'space-between'}}>
+          <div style={{background:'#fff7ed', border:'1px solid #f97316', borderRadius:12, padding:20, marginBottom:20}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
               <div>
-                <p style={{fontWeight:600, marginBottom:4}}>{t('yourReview')}</p>
+                <p style={{fontWeight:600, marginBottom:6}}>{t('yourReview')}</p>
                 {renderStars(userReview.rating)}
-                <p style={{color:'#555', marginTop:8}}>{userReview.comment}</p>
+                <p style={{color:'#555', marginTop:8, fontSize:14}}>{userReview.comment}</p>
               </div>
-              <button onClick={handleDeleteReview} style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer'}}>{t('delete')}</button>
+              <button onClick={handleDeleteReview} style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:13}}>{t('delete')}</button>
             </div>
           </div>
         )}
+
+        {/* All reviews */}
         {reviews.length === 0 ? (
-          <p style={{color:'#888', textAlign:'center', padding:32}}>{t('noReviews')}</p>
+          <div style={{textAlign:'center', padding:40, color:'#888'}}>
+            <p style={{fontSize:32, marginBottom:8}}>💬</p>
+            <p>{t('noReviews')}</p>
+          </div>
         ) : reviews.map(review => (
-          <div key={review.id} style={{borderBottom:'1px solid #eee', paddingBottom:20, marginBottom:20}}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
+          <div key={review.id} style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:12}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
               <div>
-                <p style={{fontWeight:600, marginBottom:4}}>{review.user?.name}</p>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
+                  <div style={{width:34, height:34, borderRadius:'50%', background:'#f97316', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700}}>
+                    {review.user?.name?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <div>
+                    <p style={{fontWeight:600, fontSize:14}}>{review.user?.name}</p>
+                    <span style={{fontSize:11, background:'#d1fae5', color:'#065f46', padding:'1px 6px', borderRadius:4}}>✓ {t('verifiedBuyer')}</span>
+                  </div>
+                </div>
                 {renderStars(review.rating)}
               </div>
-              <p style={{color:'#aaa', fontSize:13}}>{new Date(review.createdAt).toLocaleDateString()}</p>
+              <p style={{color:'#aaa', fontSize:12}}>{new Date(review.createdAt).toLocaleDateString()}</p>
             </div>
-            <p style={{color:'#555', marginTop:8}}>{review.comment}</p>
+            <p style={{color:'#555', fontSize:14, lineHeight:1.7, marginTop:8}}>{review.comment}</p>
           </div>
         ))}
       </div>
