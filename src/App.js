@@ -1226,7 +1226,16 @@ function CreateStore({ onCreated }) {
 function App() {
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'EN')
   const t = (key) => translations[language][key] || key
-  useEffect(() => { document.documentElement.dir = language === 'AR' ? 'rtl' : 'ltr'; document.documentElement.lang = language === 'AR' ? 'ar' : 'en'; localStorage.setItem('language', language) }, [language])
+  useEffect(() => {
+    if (language === 'AR') {
+      document.documentElement.setAttribute('dir', 'rtl')
+      document.documentElement.setAttribute('lang', 'ar')
+    } else {
+      document.documentElement.setAttribute('dir', 'ltr')
+      document.documentElement.setAttribute('lang', 'en')
+    }
+    localStorage.setItem('language', language)
+  }, [language])
   const [user, setUser] = useState(null)
   const [cartCount, setCartCount] = useState(0) // eslint-disable-line
 
@@ -1309,6 +1318,7 @@ const styles = {
 }
 
 export default App
+
 
 
 
