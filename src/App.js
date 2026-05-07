@@ -38,18 +38,18 @@ function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
           </>
         )}
         <button onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')} style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}>{language === 'EN' ? 'AR' : 'EN'}</button>
-    </div>
+      </div>
     </nav>
   )
 }
 
-function Home() {
+function Home({ t }) {
   return (
     <div style={styles.hero}>
       <p style={{color:'#f97316', fontSize:14, fontWeight:600, marginBottom:8, letterSpacing:1}}>by JASPR Trading</p>
-      <h1 style={styles.heroTitle}>Qatar's #1 Mobile Marketplace</h1>
-      <p style={styles.heroSub}>Shop new & used phones and accessories from verified vendors</p>
-      <Link to="/products" style={styles.heroBtn}>Shop Now</Link>
+      <h1 style={styles.heroTitle}>{t('heroTitle')}</h1>
+      <p style={styles.heroSub}>{t('heroSub')}</p>
+      <Link to="/products" style={styles.heroBtn}>{t('shopNow')}</Link>
     </div>
   )
 }
@@ -108,18 +108,18 @@ function Products({ t = (k) => k, language = 'EN' }) {
         <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}}
           placeholder={t('minPrice')} type="number" value={priceRange.min}
           onChange={e => setPriceRange({...priceRange, min: e.target.value})} />
-        <span style={{color:'#666'}}>to</span>
+        <span style={{color:'#666'}}>{t('to')}</span>
         <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}}
           placeholder={t('maxPrice')} type="number" value={priceRange.max}
           onChange={e => setPriceRange({...priceRange, max: e.target.value})} />
         {(selectedCategory || priceRange.min || priceRange.max || search || selectedCondition) && (
           <button onClick={clearFilters}
             style={{padding:'10px 16px', borderRadius:8, border:'1px solid #ddd', background:'#f8f9fa', cursor:'pointer', fontSize:14, color:'#666'}}>
-            Clear filters
+            {t('clearFilters')}
           </button>
         )}
         <span style={{color:'#888', fontSize:14, marginLeft:'auto'}}>
-          {loading ? 'Loading...' : `${filtered.length} product${filtered.length !== 1 ? 's' : ''} found`}
+          {loading ? t('loading') : `${filtered.length} ${t('found')}`}
         </span>
       </div>
       {categories.length > 0 && (
@@ -127,7 +127,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
           <button onClick={() => setSelectedCategory('')}
             style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500,
               background: selectedCategory === '' ? '#f97316' : '#f8f9fa', color: selectedCategory === '' ? '#fff' : '#555'}}>
-            All
+            {t('all')}
           </button>
           {categories.map(c => (
             <button key={c.id} onClick={() => setSelectedCategory(selectedCategory === c.id ? '' : c.id)}
@@ -138,7 +138,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
           ))}
         </div>
       )}
-      {loading ? <p>Loading...</p> : filtered.length === 0 ? (
+      {loading ? <p>{t('loading')}</p> : filtered.length === 0 ? (
         <div style={{textAlign:'center', padding:60}}>
           <p style={{color:'#666', marginBottom:16}}>{t('noProducts')}</p>
           <button onClick={clearFilters} style={styles.heroBtn}>{t('clearFilters')}</button>
@@ -170,7 +170,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
   )
 }
 
-function Login({ onLogin }) {
+function Login({ onLogin, t = (k) => k }) {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
 
@@ -181,24 +181,24 @@ function Login({ onLogin }) {
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
       window.location.href = '/'
-    } catch { setError('Invalid email or password') }
+    } catch { setError(t('invalidCredentials')) }
   }
 
   return (
     <div style={styles.formPage}>
       <div style={styles.formBox}>
-        <h2 style={styles.formTitle}>Welcome back</h2>
+        <h2 style={styles.formTitle}>{t('welcomeBack')}</h2>
         {error && <p style={styles.error}>{error}</p>}
-        <input style={styles.input} placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-        <input style={styles.input} type="password" placeholder="Password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-        <button style={styles.submitBtn} onClick={handleSubmit}>Login</button>
-        <p style={{textAlign:'center', marginTop:12}}>No account? <Link to="/register">Register</Link></p>
+        <input style={styles.input} placeholder={t('email')} value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+        <input style={styles.input} type="password" placeholder={t('password')} value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+        <button style={styles.submitBtn} onClick={handleSubmit}>{t('login')}</button>
+        <p style={{textAlign:'center', marginTop:12}}>{t('noAccount')} <Link to="/register">{t('register')}</Link></p>
       </div>
     </div>
   )
 }
 
-function Register({ onLogin }) {
+function Register({ onLogin, t = (k) => k }) {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'CUSTOMER' })
   const [error, setError] = useState('')
 
@@ -209,31 +209,31 @@ function Register({ onLogin }) {
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
       window.location.href = '/'
-    } catch { setError('Registration failed. Email may already exist.') }
+    } catch { setError(t('registrationFailed')) }
   }
 
   return (
     <div style={styles.formPage}>
       <div style={styles.formBox}>
-        <h2 style={styles.formTitle}>Create account</h2>
+        <h2 style={styles.formTitle}>{t('createAccount')}</h2>
         {error && <p style={styles.error}>{error}</p>}
-        <input style={styles.input} placeholder="Full name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-        <input style={styles.input} placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-        <input style={styles.input} type="password" placeholder="Password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-        <input style={styles.input} placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+        <input style={styles.input} placeholder={t('fullName')} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+        <input style={styles.input} placeholder={t('email')} value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+        <input style={styles.input} type="password" placeholder={t('password')} value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+        <input style={styles.input} placeholder={t('phone')} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
         <select style={styles.input} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
-          <option value="CUSTOMER">Customer</option>
-          <option value="VENDOR">Vendor</option>
-          <option value="ADMIN">Admin</option>
+          <option value="CUSTOMER">{t('customer')}</option>
+          <option value="VENDOR">{t('vendor')}</option>
+          <option value="ADMIN">{t('adminRole')}</option>
         </select>
-        <button style={styles.submitBtn} onClick={handleSubmit}>Create Account</button>
-        <p style={{textAlign:'center', marginTop:12}}>Have account? <Link to="/login">Login</Link></p>
+        <button style={styles.submitBtn} onClick={handleSubmit}>{t('createAccount')}</button>
+        <p style={{textAlign:'center', marginTop:12}}>{t('haveAccount')} <Link to="/login">{t('login')}</Link></p>
       </div>
     </div>
   )
 }
 
-function Cart({ onCartUpdate }) {
+function Cart({ onCartUpdate, t = (k) => k }) {
   const [cartData, setCartData] = useState({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -260,15 +260,15 @@ function Cart({ onCartUpdate }) {
     loadCart()
   }
 
-  if (loading) return <p style={{padding:40}}>Loading cart...</p>
+  if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
   return (
     <div style={styles.page}>
-      <h2 style={{marginBottom:24}}>Your Cart</h2>
+      <h2 style={{marginBottom:24}}>{t('yourCart')}</h2>
       {cartData.items.length === 0 ? (
         <div style={{textAlign:'center', padding:60}}>
-          <p style={{marginBottom:20}}>Your cart is empty</p>
-          <Link to="/products" style={styles.heroBtn}>Shop Now</Link>
+          <p style={{marginBottom:20}}>{t('cartEmpty')}</p>
+          <Link to="/products" style={styles.heroBtn}>{t('shopNow')}</Link>
         </div>
       ) : (
         <>
@@ -291,8 +291,8 @@ function Cart({ onCartUpdate }) {
             </div>
           ))}
           <div style={styles.cartTotal}>
-            <h3 style={{marginBottom:16}}>Total: {formatQAR(cartData.total)}</h3>
-            <button onClick={() => navigate('/checkout')} style={styles.submitBtn}>Proceed to Checkout</button>
+            <h3 style={{marginBottom:16}}>{t('total')}: {formatQAR(cartData.total)}</h3>
+            <button onClick={() => navigate('/checkout')} style={styles.submitBtn}>{t('proceedToCheckout')}</button>
           </div>
         </>
       )}
@@ -300,7 +300,7 @@ function Cart({ onCartUpdate }) {
   )
 }
 
-function Checkout() {
+function Checkout({ t = (k) => k }) {
   const [form, setForm] = useState({ name: '', street: '', city: 'Doha', country: 'Qatar', phone: '' })
   const [paymentMethod, setPaymentMethod] = useState('cod')
   const [cardForm, setCardForm] = useState({ cardName: '', cardNumber: '', expiry: '', cvv: '' })
@@ -322,46 +322,46 @@ function Checkout() {
   }
 
   const handlePlaceOrder = async () => {
-    if (!form.name || !form.street || !form.phone) { setError('Please fill in all required shipping fields'); return }
+    if (!form.name || !form.street || !form.phone) { setError(t('fillShipping')); return }
     setPlacing(true); setError('')
     try {
       const res = await orders.place({ shippingAddress: form })
       navigate(`/orders/${res.data.order.id}`)
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to place order.')
+      setError(err.response?.data?.error || t('orderFailed'))
       setPlacing(false)
     }
   }
 
   return (
     <div style={{...styles.page, maxWidth:900}}>
-      <h2 style={{marginBottom:8}}>Checkout</h2>
+      <h2 style={{marginBottom:8}}>{t('checkout')}</h2>
       {error && <p style={styles.error}>{error}</p>}
       <div style={{display:'flex', gap:40, flexWrap:'wrap'}}>
         <div style={{flex:1, minWidth:280}}>
-          <h3 style={{marginBottom:16, fontSize:18}}>Shipping Address</h3>
-          <input style={styles.input} placeholder="Full Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-          <input style={styles.input} placeholder="Street Address *" value={form.street} onChange={e => setForm({...form, street: e.target.value})} />
-          <input style={styles.input} placeholder="City" value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
-          <input style={styles.input} placeholder="Country" value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
-          <input style={styles.input} placeholder="Phone Number *" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-          <h3 style={{marginBottom:16, fontSize:18}}>Payment Method</h3>
+          <h3 style={{marginBottom:16, fontSize:18}}>{t('shippingAddress')}</h3>
+          <input style={styles.input} placeholder={t('fullName')} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+          <input style={styles.input} placeholder={t('streetAddress')} value={form.street} onChange={e => setForm({...form, street: e.target.value})} />
+          <input style={styles.input} placeholder={t('city')} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+          <input style={styles.input} placeholder={t('country')} value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
+          <input style={styles.input} placeholder={t('phoneNumber')} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+          <h3 style={{marginBottom:16, fontSize:18}}>{t('paymentMethod')}</h3>
           <div onClick={() => setPaymentMethod('cod')} style={{padding:'14px 16px', border: paymentMethod === 'cod' ? '2px solid #f97316' : '2px solid #eee', borderRadius:8, marginBottom:12, background: paymentMethod === 'cod' ? '#fff7ed' : '#fff', cursor:'pointer'}}>
             <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}}>
               <input type="radio" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
-              <span>Cash on Delivery</span>
+              <span>{t('cashOnDelivery')}</span>
             </label>
           </div>
           <div onClick={() => setPaymentMethod('card')} style={{border: paymentMethod === 'card' ? '2px solid #f97316' : '2px solid #eee', borderRadius:8, marginBottom:24, background: paymentMethod === 'card' ? '#fff7ed' : '#fff', cursor:'pointer', overflow:'hidden'}}>
             <div style={{padding:'14px 16px'}}>
               <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}}>
                 <input type="radio" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
-                <span>Credit / Debit Card</span>
+                <span>{t('creditDebitCard')}</span>
               </label>
             </div>
             {paymentMethod === 'card' && (
               <div style={{padding:'0 16px 16px', borderTop:'1px solid #f0e0d0'}} onClick={e => e.stopPropagation()}>
-                <input style={{...styles.input, marginTop:12}} placeholder="Cardholder Name" value={cardForm.cardName} onChange={e => setCardForm({...cardForm, cardName: e.target.value})} />
+                <input style={{...styles.input, marginTop:12}} placeholder={t('cardholderName')} value={cardForm.cardName} onChange={e => setCardForm({...cardForm, cardName: e.target.value})} />
                 <input style={{...styles.input}} placeholder="1234 5678 9012 3456" value={cardForm.cardNumber} onChange={e => setCardForm({...cardForm, cardNumber: formatCardNumber(e.target.value)})} maxLength={19} />
                 <div style={{display:'flex', gap:12}}>
                   <input style={{...styles.input, flex:1}} placeholder="MM/YY" value={cardForm.expiry} onChange={e => setCardForm({...cardForm, expiry: formatExpiry(e.target.value)})} maxLength={5} />
@@ -371,20 +371,20 @@ function Checkout() {
             )}
           </div>
           <button onClick={handlePlaceOrder} disabled={placing} style={{...styles.submitBtn, opacity: placing ? 0.7 : 1}}>
-            {placing ? 'Placing Order...' : 'Place Order'}
+            {placing ? t('placingOrder') : t('placeOrder')}
           </button>
         </div>
         <div style={{width:280}}>
-          <h3 style={{marginBottom:16, fontSize:18}}>Order Summary</h3>
+          <h3 style={{marginBottom:16, fontSize:18}}>{t('orderSummary')}</h3>
           <div style={{background:'#f8f9fa', borderRadius:12, padding:20}}>
-            {loadingCart ? <p>Loading...</p> : cartData.items.map(item => (
+            {loadingCart ? <p>{t('loading')}</p> : cartData.items.map(item => (
               <div key={item.id} style={{display:'flex', justifyContent:'space-between', marginBottom:12, fontSize:14}}>
                 <span style={{flex:1, marginRight:8}}>{item.product.name} x {item.quantity}</span>
                 <span style={{fontWeight:600}}>{formatQAR(item.product.price * item.quantity)}</span>
               </div>
             ))}
             <div style={{borderTop:'1px solid #ddd', paddingTop:12, display:'flex', justifyContent:'space-between', fontWeight:700, fontSize:16}}>
-              <span>Total</span>
+              <span>{t('total')}</span>
               <span style={{color:'#f97316'}}>{formatQAR(cartData.total)}</span>
             </div>
           </div>
@@ -394,7 +394,7 @@ function Checkout() {
   )
 }
 
-function OrderDetail() {
+function OrderDetail({ t = (k) => k }) {
   const { id } = useParams()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -404,8 +404,8 @@ function OrderDetail() {
     orders.getOne(id).then(r => { setOrder(r.data); setLoading(false) }).catch(() => setLoading(false))
   }, [id])
 
-  if (loading) return <p style={{padding:40}}>Loading order...</p>
-  if (!order) return <p style={{padding:40}}>Order not found</p>
+  if (loading) return <p style={{padding:40}}>{t('loading')}</p>
+  if (!order) return <p style={{padding:40}}>{t('orderNotFound')}</p>
 
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
 
@@ -413,34 +413,34 @@ function OrderDetail() {
     <div style={{...styles.page, maxWidth:700}}>
       <div style={{textAlign:'center', padding:'40px 0 32px'}}>
         <div style={{fontSize:64, marginBottom:16}}>🎉</div>
-        <h2 style={{fontSize:28, marginBottom:8}}>Order Placed Successfully!</h2>
-        <p style={{color:'#666'}}>Order ID: <span style={{fontFamily:'monospace', background:'#f8f9fa', padding:'2px 8px', borderRadius:4}}>{order.id?.slice(0,8)}...</span></p>
+        <h2 style={{fontSize:28, marginBottom:8}}>{t('orderSuccess')}</h2>
+        <p style={{color:'#666'}}>{t('orderId')}: <span style={{fontFamily:'monospace', background:'#f8f9fa', padding:'2px 8px', borderRadius:4}}>{order.id?.slice(0,8)}...</span></p>
       </div>
       <div style={{background:'#f8f9fa', borderRadius:12, padding:24, marginBottom:24}}>
-        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>Status</span><span style={{fontWeight:700, color: statusColor[order.status]}}>{order.status}</span></div>
-        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>Total</span><span style={{fontWeight:700, color:'#f97316', fontSize:18}}>{formatQAR(order.totalAmount)}</span></div>
-        <div style={{display:'flex', justifyContent:'space-between'}}><span style={{color:'#666'}}>Delivery to</span><span style={{fontWeight:500}}>{order.shippingAddress?.street}, {order.shippingAddress?.city}</span></div>
+        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>{t('status')}</span><span style={{fontWeight:700, color: statusColor[order.status]}}>{order.status}</span></div>
+        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>{t('total')}</span><span style={{fontWeight:700, color:'#f97316', fontSize:18}}>{formatQAR(order.totalAmount)}</span></div>
+        <div style={{display:'flex', justifyContent:'space-between'}}><span style={{color:'#666'}}>{t('deliveryTo')}</span><span style={{fontWeight:500}}>{order.shippingAddress?.street}, {order.shippingAddress?.city}</span></div>
       </div>
-      <h3 style={{marginBottom:16}}>Items Ordered</h3>
+      <h3 style={{marginBottom:16}}>{t('itemsOrdered')}</h3>
       {order.orderItems?.map(item => (
         <div key={item.id} style={styles.cartItem}>
           <div style={{fontSize:28}}>📱</div>
           <div style={{flex:1, marginLeft:16}}>
             <p style={{fontWeight:500}}>{item.product?.name}</p>
-            <p style={{color:'#666', fontSize:14}}>Qty: {item.quantity}</p>
+            <p style={{color:'#666', fontSize:14}}>{t('qty')}: {item.quantity}</p>
           </div>
           <p style={{color:'#f97316', fontWeight:600}}>{formatQAR(item.unitPrice * item.quantity)}</p>
         </div>
       ))}
       <div style={{display:'flex', gap:12, marginTop:32}}>
-        <button onClick={() => navigate('/orders')} style={{...styles.submitBtn, flex:1}}>My Orders</button>
-        <button onClick={() => navigate('/products')} style={{...styles.submitBtn, flex:1, background:'#1e3a5f'}}>Continue Shopping</button>
+        <button onClick={() => navigate('/orders')} style={{...styles.submitBtn, flex:1}}>{t('myOrders')}</button>
+        <button onClick={() => navigate('/products')} style={{...styles.submitBtn, flex:1, background:'#1e3a5f'}}>{t('continueShopping')}</button>
       </div>
     </div>
   )
 }
 
-function Orders({ user }) {
+function Orders({ user, t = (k) => k }) {
   const [orderList, setOrderList] = useState([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
@@ -455,28 +455,28 @@ function Orders({ user }) {
   const handleStatusUpdate = async (orderId, status) => {
     setUpdatingId(orderId)
     try { await orders.updateStatus(orderId, status); loadOrders() }
-    catch (err) { alert(err.response?.data?.error || 'Failed to update status') }
+    catch (err) { alert(err.response?.data?.error || t('updateFailed')) }
     setUpdatingId(null)
   }
 
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
   const nextStatus = { PENDING:'CONFIRMED', CONFIRMED:'SHIPPED', SHIPPED:'DELIVERED' }
 
-  if (loading) return <p style={{padding:40}}>Loading orders...</p>
+  if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
   return (
     <div style={styles.page}>
-      <h2 style={{marginBottom:24}}>My Orders</h2>
+      <h2 style={{marginBottom:24}}>{t('myOrders')}</h2>
       {orderList.length === 0 ? (
         <div style={{textAlign:'center', padding:60}}>
-          <p style={{marginBottom:20}}>No orders yet</p>
-          <Link to="/products" style={styles.heroBtn}>Start Shopping</Link>
+          <p style={{marginBottom:20}}>{t('noOrders')}</p>
+          <Link to="/products" style={styles.heroBtn}>{t('startShopping')}</Link>
         </div>
       ) : orderList.map(order => (
         <div key={order.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12}}>
             <div>
-              <p onClick={() => navigate(`/orders/${order.id}`)} style={{fontWeight:600, color:'#1e3a5f', cursor:'pointer'}}>Order #{order.id?.slice(0,8)}...</p>
+              <p onClick={() => navigate(`/orders/${order.id}`)} style={{fontWeight:600, color:'#1e3a5f', cursor:'pointer'}}>{t('order')} #{order.id?.slice(0,8)}...</p>
               <p style={{color:'#666', fontSize:14, marginTop:4}}>{new Date(order.createdAt).toLocaleDateString()}</p>
             </div>
             <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
@@ -496,7 +496,7 @@ function Orders({ user }) {
   )
 }
 
-function ProductDetail({ user }) {
+function ProductDetail({ user, t = (k) => k }) {
   const { id } = useParams()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -523,31 +523,30 @@ function ProductDetail({ user }) {
       await cart.add({ productId: id, quantity: 1 })
       setAdded(true)
       setShowCartModal(true)
-      setShowCartModal(true)
       setTimeout(() => setAdded(false), 3000)
-    } catch { alert('Please login to add to cart') }
+    } catch { alert(t('loginToAdd')) }
   }
 
   const handleSubmitReview = async () => {
-    if (!reviewForm.comment.trim()) { setReviewError('Please write a comment'); return }
+    if (!reviewForm.comment.trim()) { setReviewError(t('writeComment')); return }
     setSubmitting(true); setReviewError(''); setReviewSuccess('')
     try {
       await products.addReview(id, reviewForm)
-      setReviewSuccess('Review submitted!')
+      setReviewSuccess(t('reviewSubmitted'))
       setReviewForm({ rating: 5, comment: '' })
       loadReviews()
       products.getOne(id).then(r => setProduct(r.data))
-    } catch (err) { setReviewError(err.response?.data?.error || 'Failed to submit review') }
+    } catch (err) { setReviewError(err.response?.data?.error || t('reviewFailed')) }
     setSubmitting(false)
   }
 
   const handleDeleteReview = async () => {
-    if (!window.confirm('Delete your review?')) return
+    if (!window.confirm(t('deleteReviewConfirm'))) return
     try {
       await products.deleteReview(id)
       loadReviews()
       products.getOne(id).then(r => setProduct(r.data))
-    } catch (err) { setReviewError(err.response?.data?.error || 'Failed to delete') }
+    } catch (err) { setReviewError(err.response?.data?.error || t('deleteFailed')) }
   }
 
   const renderStars = (rating, interactive = false, onRate = null) => (
@@ -561,8 +560,8 @@ function ProductDetail({ user }) {
     </div>
   )
 
-  if (loading) return <p style={{padding:40}}>Loading...</p>
-  if (!product) return <p style={{padding:40}}>Product not found</p>
+  if (loading) return <p style={{padding:40}}>{t('loading')}</p>
+  if (!product) return <p style={{padding:40}}>{t('productNotFound')}</p>
 
   const imgSrc = product.images?.[0] ? (product.images[0].startsWith('http') ? product.images[0] : `http://localhost:3000${product.images[0]}`) : null
   const userReview = reviews.find(r => r.userId === user?.id)
@@ -571,11 +570,11 @@ function ProductDetail({ user }) {
     <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{background:'#fff',borderRadius:16,padding:40,maxWidth:400,width:'90%',textAlign:'center'}}>
         <div style={{fontSize:48,marginBottom:16}}>✅</div>
-        <h3 style={{marginBottom:8,fontSize:22}}>Added to Cart!</h3>
-        <p style={{color:'#666',marginBottom:24}}>Item added to your cart</p>
+        <h3 style={{marginBottom:8,fontSize:22}}>{t('addedToCart')}</h3>
+        <p style={{color:'#666',marginBottom:24}}>{t('itemAddedToCart')}</p>
         <div style={{display:'flex',gap:12}}>
-          <button onClick={()=>setShowCartModal(false)} style={{flex:1,padding:'12px',border:'2px solid #f97316',borderRadius:8,background:'#fff',color:'#f97316',fontWeight:600,cursor:'pointer'}}>Continue Shopping</button>
-          <button onClick={()=>{setShowCartModal(false);window.location.href='/checkout'}} style={{flex:1,padding:'12px',border:'none',borderRadius:8,background:'#f97316',color:'#fff',fontWeight:600,cursor:'pointer'}}>Go to Checkout</button>
+          <button onClick={()=>setShowCartModal(false)} style={{flex:1,padding:'12px',border:'2px solid #f97316',borderRadius:8,background:'#fff',color:'#f97316',fontWeight:600,cursor:'pointer'}}>{t('continueShopping')}</button>
+          <button onClick={()=>{setShowCartModal(false);window.location.href='/checkout'}} style={{flex:1,padding:'12px',border:'none',borderRadius:8,background:'#f97316',color:'#fff',fontWeight:600,cursor:'pointer'}}>{t('goToCheckout')}</button>
         </div>
       </div>
     </div>
@@ -596,30 +595,30 @@ function ProductDetail({ user }) {
           <h1 style={{fontSize:28, marginBottom:8}}>{product.name}</h1>
           <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
             {renderStars(Math.round(product.avgRating || 0))}
-            <span style={{color:'#666', fontSize:14}}>{product.avgRating > 0 ? `${product.avgRating} / 5` : 'No ratings yet'}</span>
+            <span style={{color:'#666', fontSize:14}}>{product.avgRating > 0 ? `${product.avgRating} / 5` : t('noRatings')}</span>
           </div>
           <p style={{color:'#f97316', fontSize:32, fontWeight:700, marginBottom:16}}>{formatQAR(product.price)}</p>
           <p style={{color:'#555', lineHeight:1.7, marginBottom:24}}>{product.description}</p>
-          <p style={{color:'#888', marginBottom:20}}>In stock: {product.stockQty} units</p>
+          <p style={{color:'#888', marginBottom:20}}>{t('inStock')}: {product.stockQty} {t('units')}</p>
           <button onClick={handleAddToCart} disabled={added} style={{...styles.submitBtn, width:'auto', padding:'14px 32px', background: added ? '#10b981' : '#f97316', cursor: added ? 'default' : 'pointer'}}>
-            {added ? 'Added to Cart!' : 'Add to Cart'}
+            {added ? t('addedToCart') : t('addToCart')}
           </button>
         </div>
       </div>
       <div style={{borderTop:'1px solid #eee', paddingTop:32}}>
-        <h2 style={{marginBottom:24}}>Customer Reviews</h2>
+        <h2 style={{marginBottom:24}}>{t('customerReviews')}</h2>
         {user && !userReview && (
           <div style={{background:'#f8f9fa', borderRadius:12, padding:24, marginBottom:32}}>
-            <h3 style={{marginBottom:16}}>Write a Review</h3>
+            <h3 style={{marginBottom:16}}>{t('writeReview')}</h3>
             {reviewError && <p style={{color:'#ef4444', marginBottom:12}}>{reviewError}</p>}
             {reviewSuccess && <p style={{color:'#10b981', marginBottom:12}}>{reviewSuccess}</p>}
             <div style={{marginBottom:16}}>
-              <p style={{marginBottom:8, fontWeight:500}}>Your Rating</p>
+              <p style={{marginBottom:8, fontWeight:500}}>{t('yourRating')}</p>
               {renderStars(reviewForm.rating, true, (star) => setReviewForm({...reviewForm, rating: star}))}
             </div>
-            <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder="Share your experience..." value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
+            <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder={t('shareExperience')} value={reviewForm.comment} onChange={e => setReviewForm({...reviewForm, comment: e.target.value})} />
             <button onClick={handleSubmitReview} disabled={submitting} style={{...styles.submitBtn, opacity: submitting ? 0.7 : 1}}>
-              {submitting ? 'Submitting...' : 'Submit Review'}
+              {submitting ? t('submitting') : t('submitReview')}
             </button>
           </div>
         )}
@@ -627,16 +626,16 @@ function ProductDetail({ user }) {
           <div style={{background:'#fff7ed', border:'1px solid #f97316', borderRadius:12, padding:20, marginBottom:24}}>
             <div style={{display:'flex', justifyContent:'space-between'}}>
               <div>
-                <p style={{fontWeight:600, marginBottom:4}}>Your Review</p>
+                <p style={{fontWeight:600, marginBottom:4}}>{t('yourReview')}</p>
                 {renderStars(userReview.rating)}
                 <p style={{color:'#555', marginTop:8}}>{userReview.comment}</p>
               </div>
-              <button onClick={handleDeleteReview} style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer'}}>Delete</button>
+              <button onClick={handleDeleteReview} style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer'}}>{t('delete')}</button>
             </div>
           </div>
         )}
         {reviews.length === 0 ? (
-          <p style={{color:'#888', textAlign:'center', padding:32}}>No reviews yet.</p>
+          <p style={{color:'#888', textAlign:'center', padding:32}}>{t('noReviews')}</p>
         ) : reviews.map(review => (
           <div key={review.id} style={{borderBottom:'1px solid #eee', paddingBottom:20, marginBottom:20}}>
             <div style={{display:'flex', justifyContent:'space-between', marginBottom:8}}>
@@ -654,7 +653,7 @@ function ProductDetail({ user }) {
   )
 }
 
-function AdminDashboard() {
+function AdminDashboard({ t = (k) => k }) {
   const [tab, setTab] = useState('overview')
   const [stats, setStats] = useState(null)
   const [allOrders, setAllOrders] = useState([])
@@ -691,18 +690,18 @@ function AdminDashboard() {
   const handleStatusUpdate = async (orderId, status) => {
     setUpdatingId(orderId)
     try { await orders.updateStatus(orderId, status); await loadData() }
-    catch (err) { alert(err.response?.data?.error || 'Failed to update') }
+    catch (err) { alert(err.response?.data?.error || t('updateFailed')) }
     setUpdatingId(null)
   }
 
   const handleMarkPaid = async (vendorId, amount) => {
-    const note = prompt('Add a note (optional):') || ''
+    const note = prompt(t('addNote')) || ''
     try {
       await vendors.adminMarkPaid({ vendorId, amount, note })
-      setPayoutMsg('Payout marked as paid!')
+      setPayoutMsg(t('payoutMarked'))
       loadData()
       setTimeout(() => setPayoutMsg(''), 3000)
-    } catch (err) { alert(err.response?.data?.error || 'Failed to mark payout') }
+    } catch (err) { alert(err.response?.data?.error || t('payoutFailed')) }
   }
 
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
@@ -711,32 +710,32 @@ function AdminDashboard() {
     <button onClick={() => setTab(key)} style={{padding:'10px 20px', borderRadius:8, border:'none', cursor:'pointer', fontWeight:600, fontSize:14, background: tab === key ? '#f97316' : '#f8f9fa', color: tab === key ? '#fff' : '#333'}}>{label}</button>
   )
 
-  if (loading) return <p style={{padding:40}}>Loading admin dashboard...</p>
+  if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
   return (
     <div style={styles.page}>
       <div style={{background:'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)', borderRadius:16, padding:32, marginBottom:32, color:'#fff'}}>
-        <h2 style={{fontSize:28, marginBottom:4}}>Admin Dashboard</h2>
-        <p style={{color:'#94a3b8'}}>Manage your MobiMart by JASPR Trading marketplace</p>
+        <h2 style={{fontSize:28, marginBottom:4}}>{t('adminDashboard')}</h2>
+        <p style={{color:'#94a3b8'}}>{t('adminSubtitle')}</p>
       </div>
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap'}}>
-        {tabBtn('overview', 'Overview')}
-        {tabBtn('orders', 'All Orders')}
-        {tabBtn('users', 'Users')}
-        {tabBtn('vendors', 'Vendors')}
-        {tabBtn('payouts', 'Payouts')}
+        {tabBtn('overview', t('overview'))}
+        {tabBtn('orders', t('allOrders'))}
+        {tabBtn('users', t('users'))}
+        {tabBtn('vendors', t('vendors'))}
+        {tabBtn('payouts', t('payouts'))}
       </div>
 
       {tab === 'overview' && stats && (
         <div>
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:16, marginBottom:32}}>
             {[
-              { label:'Total Orders', value: stats.totalOrders, icon:'📦', color:'#f97316' },
-              { label:'Total Revenue', value: formatQAR(stats.totalRevenue || 0), icon:'💰', color:'#10b981' },
-              { label:'Platform Fees', value: formatQAR(stats.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
-              { label:'Total Users', value: stats.totalUsers, icon:'👥', color:'#3b82f6' },
-              { label:'Total Vendors', value: stats.totalVendors, icon:'🏪', color:'#8b5cf6' },
-              { label:'Active Products', value: stats.totalProducts, icon:'📱', color:'#f43f5e' },
+              { label: t('totalOrders'), value: stats.totalOrders, icon:'📦', color:'#f97316' },
+              { label: t('totalRevenue'), value: formatQAR(stats.totalRevenue || 0), icon:'💰', color:'#10b981' },
+              { label: t('platformFees'), value: formatQAR(stats.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
+              { label: t('totalUsers'), value: stats.totalUsers, icon:'👥', color:'#3b82f6' },
+              { label: t('totalVendors'), value: stats.totalVendors, icon:'🏪', color:'#8b5cf6' },
+              { label: t('activeProducts'), value: stats.totalProducts, icon:'📱', color:'#f43f5e' },
             ].map(stat => (
               <div key={stat.label} style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
                 <p style={{fontSize:32, marginBottom:8}}>{stat.icon}</p>
@@ -745,11 +744,11 @@ function AdminDashboard() {
               </div>
             ))}
           </div>
-          <h3 style={{marginBottom:16}}>Recent Orders</h3>
+          <h3 style={{marginBottom:16}}>{t('recentOrders')}</h3>
           {stats.recentOrders?.map(order => (
             <div key={order.id} style={{border:'1px solid #eee', borderRadius:12, padding:16, marginBottom:12, background:'#fff', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
               <div>
-                <p style={{fontWeight:600}}>Order #{order.id?.slice(0,8)}...</p>
+                <p style={{fontWeight:600}}>{t('order')} #{order.id?.slice(0,8)}...</p>
                 <p style={{color:'#666', fontSize:13}}>{order.user?.name}</p>
               </div>
               <div style={{display:'flex', alignItems:'center', gap:12}}>
@@ -763,12 +762,12 @@ function AdminDashboard() {
 
       {tab === 'orders' && (
         <div>
-          <h3 style={{marginBottom:16}}>All Orders ({allOrders.length})</h3>
+          <h3 style={{marginBottom:16}}>{t('allOrders')} ({allOrders.length})</h3>
           {allOrders.map(order => (
             <div key={order.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
               <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
                 <div>
-                  <p style={{fontWeight:600}}>Order #{order.id?.slice(0,8)}...</p>
+                  <p style={{fontWeight:600}}>{t('order')} #{order.id?.slice(0,8)}...</p>
                   <p style={{color:'#666', fontSize:13}}>{order.user?.name} ({order.user?.email})</p>
                   <p style={{color:'#666', fontSize:13}}>{new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
@@ -791,7 +790,7 @@ function AdminDashboard() {
 
       {tab === 'users' && (
         <div>
-          <h3 style={{marginBottom:16}}>All Users ({allUsers.length})</h3>
+          <h3 style={{marginBottom:16}}>{t('users')} ({allUsers.length})</h3>
           <div style={{border:'1px solid #eee', borderRadius:12, overflow:'hidden'}}>
             {allUsers.map((u, i) => (
               <div key={u.id} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 20px', background: i % 2 === 0 ? '#fff' : '#f8f9fa', borderBottom:'1px solid #eee'}}>
@@ -808,7 +807,7 @@ function AdminDashboard() {
 
       {tab === 'vendors' && (
         <div>
-          <h3 style={{marginBottom:16}}>All Vendors ({allVendors.length})</h3>
+          <h3 style={{marginBottom:16}}>{t('vendors')} ({allVendors.length})</h3>
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:16}}>
             {allVendors.map(vendor => (
               <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, background:'#fff'}}>
@@ -818,11 +817,11 @@ function AdminDashboard() {
                 <div style={{display:'flex', gap:16, marginTop:12}}>
                   <div style={{textAlign:'center'}}>
                     <p style={{fontWeight:700, color:'#f97316'}}>{vendor._count?.products || 0}</p>
-                    <p style={{color:'#666', fontSize:12}}>Products</p>
+                    <p style={{color:'#666', fontSize:12}}>{t('products')}</p>
                   </div>
                   <div style={{textAlign:'center'}}>
                     <p style={{fontWeight:700, color:'#3b82f6'}}>{vendor._count?.orderItems || 0}</p>
-                    <p style={{color:'#666', fontSize:12}}>Orders</p>
+                    <p style={{color:'#666', fontSize:12}}>{t('orders')}</p>
                   </div>
                 </div>
               </div>
@@ -840,45 +839,45 @@ function AdminDashboard() {
                 <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
                   <p style={{fontSize:28, marginBottom:8}}>🏦</p>
                   <p style={{fontSize:22, fontWeight:700, color:'#10b981'}}>{formatQAR(payoutsData.summary?.totalPlatformRevenue || 0)}</p>
-                  <p style={{color:'#666', fontSize:14}}>Total Platform Revenue</p>
+                  <p style={{color:'#666', fontSize:14}}>{t('totalPlatformRevenue')}</p>
                 </div>
                 <div style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
                   <p style={{fontSize:28, marginBottom:8}}>⏳</p>
                   <p style={{fontSize:22, fontWeight:700, color:'#f97316'}}>{formatQAR(payoutsData.summary?.totalPendingPayouts || 0)}</p>
-                  <p style={{color:'#666', fontSize:14}}>Total Pending Payouts</p>
+                  <p style={{color:'#666', fontSize:14}}>{t('totalPendingPayouts')}</p>
                 </div>
               </div>
-              <h3 style={{marginBottom:16}}>Vendor Payout Summary</h3>
+              <h3 style={{marginBottom:16}}>{t('vendorPayoutSummary')}</h3>
               {payoutsData.vendors?.map(vendor => (
                 <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
                   <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:12}}>
                     <div>
                       <p style={{fontWeight:700, fontSize:16, marginBottom:4}}>🏪 {vendor.storeName}</p>
                       <p style={{color:'#666', fontSize:13}}>{vendor.ownerName} - {vendor.ownerEmail}</p>
-                      <p style={{color:'#aaa', fontSize:12}}>IBAN: {vendor.ibanNumber || 'Not provided'}</p>
+                      <p style={{color:'#aaa', fontSize:12}}>IBAN: {vendor.ibanNumber || t('notProvided')}</p>
                     </div>
                     <div style={{textAlign:'right'}}>
                       <div style={{display:'flex', gap:12, marginBottom:12, flexWrap:'wrap'}}>
                         <div style={{textAlign:'center', background:'#f8f9fa', padding:'8px 12px', borderRadius:8}}>
                           <p style={{fontWeight:700, color:'#1e3a5f', fontSize:14}}>{formatQAR(vendor.totalSales)}</p>
-                          <p style={{color:'#666', fontSize:11}}>Total Sales</p>
+                          <p style={{color:'#666', fontSize:11}}>{t('totalSales')}</p>
                         </div>
                         <div style={{textAlign:'center', background:'#fff7ed', padding:'8px 12px', borderRadius:8}}>
                           <p style={{fontWeight:700, color:'#f97316', fontSize:14}}>{formatQAR(vendor.totalPlatformFee)}</p>
-                          <p style={{color:'#666', fontSize:11}}>Platform Fee</p>
+                          <p style={{color:'#666', fontSize:11}}>{t('platformFee')}</p>
                         </div>
                         <div style={{textAlign:'center', background:'#d1fae5', padding:'8px 12px', borderRadius:8}}>
                           <p style={{fontWeight:700, color:'#065f46', fontSize:14}}>{formatQAR(vendor.totalEarnings)}</p>
-                          <p style={{color:'#666', fontSize:11}}>Vendor Earning</p>
+                          <p style={{color:'#666', fontSize:11}}>{t('vendorEarning')}</p>
                         </div>
                       </div>
                       <div style={{display:'flex', alignItems:'center', gap:12, justifyContent:'flex-end'}}>
                         <div>
-                          <p style={{fontSize:13, color:'#666'}}>Paid: {formatQAR(vendor.totalPaid)}</p>
-                          <p style={{fontSize:15, fontWeight:700, color: vendor.pendingPayout > 0 ? '#ef4444' : '#10b981'}}>Pending: {formatQAR(vendor.pendingPayout)}</p>
+                          <p style={{fontSize:13, color:'#666'}}>{t('paid')}: {formatQAR(vendor.totalPaid)}</p>
+                          <p style={{fontSize:15, fontWeight:700, color: vendor.pendingPayout > 0 ? '#ef4444' : '#10b981'}}>{t('pending')}: {formatQAR(vendor.pendingPayout)}</p>
                         </div>
                         {vendor.pendingPayout > 0 && (
-                          <button onClick={() => handleMarkPaid(vendor.id, vendor.pendingPayout)} style={{padding:'8px 16px', background:'#10b981', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>Mark Paid</button>
+                          <button onClick={() => handleMarkPaid(vendor.id, vendor.pendingPayout)} style={{padding:'8px 16px', background:'#10b981', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>{t('markPaid')}</button>
                         )}
                       </div>
                     </div>
@@ -886,14 +885,14 @@ function AdminDashboard() {
                 </div>
               ))}
             </>
-          ) : <p style={{padding:40, color:'#666'}}>Loading payouts...</p>}
+          ) : <p style={{padding:40, color:'#666'}}>{t('loading')}</p>}
         </div>
       )}
     </div>
   )
 }
 
-function VendorDashboard() {
+function VendorDashboard({ t = (k) => k }) {
   const [store, setStore] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('products')
@@ -943,13 +942,13 @@ function VendorDashboard() {
   const handleSaveIban = async () => {
     try {
       await vendors.updateIban({ ibanNumber: iban })
-      setIbanMsg('IBAN saved!')
+      setIbanMsg(t('ibanSaved'))
       setTimeout(() => setIbanMsg(''), 3000)
-    } catch { setIbanMsg('Failed to save IBAN') }
+    } catch { setIbanMsg(t('ibanFailed')) }
   }
 
   const handleAddProduct = async () => {
-    if (!form.name || !form.price || !form.stockQty) { setError('Name, price and stock are required'); return }
+    if (!form.name || !form.price || !form.stockQty) { setError(t('productRequired')); return }
     setSaving(true); setError(''); setMessage('')
     try {
       let finalImageUrl = null
@@ -963,14 +962,14 @@ function VendorDashboard() {
       }
       if (editingId) {
         await products.update(editingId, { ...form, price: parseFloat(form.price), stockQty: parseInt(form.stockQty), isActive: true, ...(finalImageUrl && { images: [finalImageUrl] }) })
-        setMessage('Product updated!')
+        setMessage(t('productUpdated'))
       } else {
         await products.create({ ...form, price: parseFloat(form.price), stockQty: parseInt(form.stockQty), images: finalImageUrl ? [finalImageUrl] : [] })
-        setMessage('Product added!')
+        setMessage(t('productAdded'))
       }
       setForm({ name: '', description: '', price: '', stockQty: '', categoryId: '', condition: 'NEW' })
       resetImageFields(); setEditingId(null); loadStore(); setTab('products')
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save product') }
+    } catch (err) { setError(err.response?.data?.error || t('saveFailed')) }
     setSaving(false)
   }
 
@@ -980,12 +979,12 @@ function VendorDashboard() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Remove this product?')) return
+    if (!window.confirm(t('removeProductConfirm'))) return
     await products.remove(id); loadStore()
   }
 
   const handleBulkUpload = async () => {
-    if (!excelFile) { setError('Please select an Excel file'); return }
+    if (!excelFile) { setError(t('selectExcel')); return }
     setSaving(true); setError(''); setMessage('')
     try {
       const formData = new FormData()
@@ -993,16 +992,16 @@ function VendorDashboard() {
       const res = await vendors.bulkUpload(formData)
       setMessage(res.data.message)
       setExcelFile(null); loadStore()
-    } catch (err) { setError(err.response?.data?.error || 'Bulk upload failed') }
+    } catch (err) { setError(err.response?.data?.error || t('bulkFailed')) }
     setSaving(false)
   }
 
-  if (loading) return <p style={{padding:40}}>Loading store...</p>
+  if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
   if (!store) return (
     <div style={{...styles.page, maxWidth:500}}>
-      <h2 style={{marginBottom:24}}>Create Your Store</h2>
-      <CreateStore onCreated={loadStore} />
+      <h2 style={{marginBottom:24}}>{t('createStore')}</h2>
+      <CreateStore onCreated={loadStore} t={t} />
     </div>
   )
 
@@ -1022,22 +1021,22 @@ function VendorDashboard() {
         <div style={{display:'flex', gap:24, marginTop:20}}>
           <div style={{background:'rgba(255,255,255,0.1)', padding:'12px 20px', borderRadius:10}}>
             <p style={{fontSize:24, fontWeight:700}}>{store.products?.length || 0}</p>
-            <p style={{fontSize:12, color:'#94a3b8'}}>Products</p>
+            <p style={{fontSize:12, color:'#94a3b8'}}>{t('products')}</p>
           </div>
           {earnings && (
             <div style={{background:'rgba(255,255,255,0.1)', padding:'12px 20px', borderRadius:10}}>
               <p style={{fontSize:24, fontWeight:700}}>{formatQAR(earnings.summary?.pendingPayout || 0)}</p>
-              <p style={{fontSize:12, color:'#94a3b8'}}>Pending Payout</p>
+              <p style={{fontSize:12, color:'#94a3b8'}}>{t('pendingPayout')}</p>
             </div>
           )}
         </div>
       </div>
 
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap'}}>
-        {tabBtn('products', 'My Products')}
-        {tabBtn('add', editingId ? 'Edit Product' : 'Add Product')}
-        {tabBtn('bulk', 'Bulk Upload')}
-        {tabBtn('earnings', 'My Earnings')}
+        {tabBtn('products', t('myProducts'))}
+        {tabBtn('add', editingId ? t('editProduct') : t('addProduct'))}
+        {tabBtn('bulk', t('bulkUpload'))}
+        {tabBtn('earnings', t('myEarnings'))}
       </div>
 
       {message && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16}}>{message}</div>}
@@ -1047,8 +1046,8 @@ function VendorDashboard() {
         <div>
           {store.products?.length === 0 ? (
             <div style={{textAlign:'center', padding:60, background:'#f8f9fa', borderRadius:12}}>
-              <p style={{color:'#666', marginBottom:20}}>No products yet</p>
-              <button onClick={() => setTab('add')} style={styles.submitBtn}>Add Your First Product</button>
+              <p style={{color:'#666', marginBottom:20}}>{t('noProducts')}</p>
+              <button onClick={() => setTab('add')} style={styles.submitBtn}>{t('addFirstProduct')}</button>
             </div>
           ) : (
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:16}}>
@@ -1066,10 +1065,10 @@ function VendorDashboard() {
                         <span style={{padding:'2px 8px', borderRadius:4, fontSize:11, fontWeight:600, background: cond.bg, color: cond.color}}>{cond.text}</span>
                       </div>
                       <p style={{color:'#f97316', fontWeight:700, marginBottom:4}}>{formatQAR(p.price)}</p>
-                      <p style={{color:'#666', fontSize:13, marginBottom:12}}>Stock: {p.stockQty}</p>
+                      <p style={{color:'#666', fontSize:13, marginBottom:12}}>{t('stock')}: {p.stockQty}</p>
                       <div style={{display:'flex', gap:8}}>
-                        <button onClick={() => handleEdit(p)} style={{flex:1, padding:'8px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>Edit</button>
-                        <button onClick={() => handleDelete(p.id)} style={{flex:1, padding:'8px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>Remove</button>
+                        <button onClick={() => handleEdit(p)} style={{flex:1, padding:'8px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>{t('edit')}</button>
+                        <button onClick={() => handleDelete(p.id)} style={{flex:1, padding:'8px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>{t('remove')}</button>
                       </div>
                     </div>
                   </div>
@@ -1082,15 +1081,15 @@ function VendorDashboard() {
 
       {tab === 'add' && (
         <div style={{maxWidth:600}}>
-          <h3 style={{marginBottom:24}}>{editingId ? 'Edit Product' : 'Add New Product'}</h3>
-          <input style={styles.input} placeholder="Product Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-          <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder="Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+          <h3 style={{marginBottom:24}}>{editingId ? t('editProduct') : t('addNewProduct')}</h3>
+          <input style={styles.input} placeholder={t('productName')} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+          <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder={t('description')} value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
           <div style={{display:'flex', gap:12}}>
-            <input style={{...styles.input, flex:1}} placeholder="Price (QAR) *" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
-            <input style={{...styles.input, flex:1}} placeholder="Stock Qty *" type="number" value={form.stockQty} onChange={e => setForm({...form, stockQty: e.target.value})} />
+            <input style={{...styles.input, flex:1}} placeholder={t('priceQAR')} type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
+            <input style={{...styles.input, flex:1}} placeholder={t('stockQty')} type="number" value={form.stockQty} onChange={e => setForm({...form, stockQty: e.target.value})} />
           </div>
           <select style={styles.input} value={form.categoryId || ''} onChange={e => setForm({...form, categoryId: e.target.value})}>
-            <option value="">Select Category</option>
+            <option value="">{t('selectCategory')}</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select style={styles.input} value={form.condition} onChange={e => setForm({...form, condition: e.target.value})}>
@@ -1100,43 +1099,43 @@ function VendorDashboard() {
             <option value="FAIR">{t('conditionFair')}</option>
           </select>
           <div style={{marginBottom:12}}>
-            <p style={{fontWeight:600, marginBottom:8, fontSize:14}}>Product Image</p>
+            <p style={{fontWeight:600, marginBottom:8, fontSize:14}}>{t('productImage')}</p>
             <div style={{display:'flex', gap:8, marginBottom:12}}>
-              <button onClick={() => setImageTab('upload')} style={{flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer', background: imageTab === 'upload' ? '#f97316' : '#f8f9fa', color: imageTab === 'upload' ? '#fff' : '#333', fontWeight:600}}>Upload File</button>
-              <button onClick={() => setImageTab('url')} style={{flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer', background: imageTab === 'url' ? '#f97316' : '#f8f9fa', color: imageTab === 'url' ? '#fff' : '#333', fontWeight:600}}>Image URL</button>
+              <button onClick={() => setImageTab('upload')} style={{flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer', background: imageTab === 'upload' ? '#f97316' : '#f8f9fa', color: imageTab === 'upload' ? '#fff' : '#333', fontWeight:600}}>{t('uploadFile')}</button>
+              <button onClick={() => setImageTab('url')} style={{flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer', background: imageTab === 'url' ? '#f97316' : '#f8f9fa', color: imageTab === 'url' ? '#fff' : '#333', fontWeight:600}}>{t('imageUrl')}</button>
             </div>
             {imageTab === 'upload' ? (
               <div style={{border:'2px dashed #ddd', borderRadius:12, padding:24, textAlign:'center', cursor:'pointer'}} onClick={() => document.getElementById('imgInput').click()}>
-                {imagePreview ? <img src={imagePreview} alt="preview" style={{maxHeight:150, maxWidth:'100%', borderRadius:8}} /> : <p style={{color:'#666'}}>Click to upload</p>}
+                {imagePreview ? <img src={imagePreview} alt="preview" style={{maxHeight:150, maxWidth:'100%', borderRadius:8}} /> : <p style={{color:'#666'}}>{t('clickToUpload')}</p>}
                 <input id="imgInput" type="file" accept="image/*" style={{display:'none'}} onChange={handleImageChange} />
               </div>
             ) : (
               <div>
-                <input style={styles.input} placeholder="Paste image URL..." value={imageUrl} onChange={e => { setImageUrl(e.target.value); setImagePreview(e.target.value) }} />
+                <input style={styles.input} placeholder={t('pasteImageUrl')} value={imageUrl} onChange={e => { setImageUrl(e.target.value); setImagePreview(e.target.value) }} />
                 {imageUrl && <img src={imageUrl} alt="preview" style={{maxHeight:150, maxWidth:'100%', borderRadius:8}} onError={e => { e.target.style.display='none' }} />}
               </div>
             )}
-            {(imagePreview || imageUrl) && <button onClick={resetImageFields} style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer', marginTop:8}}>Remove image</button>}
+            {(imagePreview || imageUrl) && <button onClick={resetImageFields} style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer', marginTop:8}}>{t('removeImage')}</button>}
           </div>
           <div style={{display:'flex', gap:12}}>
             <button onClick={handleAddProduct} disabled={saving} style={{...styles.submitBtn, flex:1, opacity: saving ? 0.7 : 1}}>
-              {saving ? 'Saving...' : editingId ? 'Update Product' : 'Add Product'}
+              {saving ? t('saving') : editingId ? t('updateProduct') : t('addProduct')}
             </button>
-            {editingId && <button onClick={() => { setEditingId(null); setForm({ name:'', description:'', price:'', stockQty:'', categoryId:'', condition:'NEW' }); resetImageFields(); setTab('products') }} style={{...styles.submitBtn, flex:1, background:'#6b7280'}}>Cancel</button>}
+            {editingId && <button onClick={() => { setEditingId(null); setForm({ name:'', description:'', price:'', stockQty:'', categoryId:'', condition:'NEW' }); resetImageFields(); setTab('products') }} style={{...styles.submitBtn, flex:1, background:'#6b7280'}}>{t('cancel')}</button>}
           </div>
         </div>
       )}
 
       {tab === 'bulk' && (
         <div style={{maxWidth:600}}>
-          <h3 style={{marginBottom:8}}>Bulk Upload via Excel</h3>
-          <p style={{color:'#666', marginBottom:24}}>Columns: Name, Description, Price, Stock, CategoryId, Condition</p>
+          <h3 style={{marginBottom:8}}>{t('bulkUpload')}</h3>
+          <p style={{color:'#666', marginBottom:24}}>{t('bulkColumns')}</p>
           <div style={{border:'2px dashed #ddd', borderRadius:12, padding:40, textAlign:'center', marginBottom:16, cursor:'pointer'}} onClick={() => document.getElementById('excelInput').click()}>
-            {excelFile ? <p style={{color:'#065f46', fontWeight:600}}>{excelFile.name}</p> : <p style={{color:'#666'}}>Click to select Excel file</p>}
+            {excelFile ? <p style={{color:'#065f46', fontWeight:600}}>{excelFile.name}</p> : <p style={{color:'#666'}}>{t('selectExcelFile')}</p>}
             <input id="excelInput" type="file" accept=".xlsx,.xls" style={{display:'none'}} onChange={e => setExcelFile(e.target.files[0])} />
           </div>
           <button onClick={handleBulkUpload} disabled={saving || !excelFile} style={{...styles.submitBtn, opacity: saving || !excelFile ? 0.7 : 1}}>
-            {saving ? 'Uploading...' : 'Upload Products'}
+            {saving ? t('uploading') : t('uploadProducts')}
           </button>
         </div>
       )}
@@ -1147,11 +1146,11 @@ function VendorDashboard() {
             <>
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:16, marginBottom:32}}>
                 {[
-                  { label:'Total Sales', value: formatQAR(earnings.summary?.totalSales || 0), icon:'🛒', color:'#1e3a5f' },
-                  { label:'Platform Fee (10%)', value: formatQAR(earnings.summary?.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
-                  { label:'Your Earnings', value: formatQAR(earnings.summary?.totalEarnings || 0), icon:'💰', color:'#10b981' },
-                  { label:'Total Paid', value: formatQAR(earnings.summary?.totalPaid || 0), icon:'✅', color:'#3b82f6' },
-                  { label:'Pending Payout', value: formatQAR(earnings.summary?.pendingPayout || 0), icon:'⏳', color:'#ef4444' },
+                  { label: t('totalSales'), value: formatQAR(earnings.summary?.totalSales || 0), icon:'🛒', color:'#1e3a5f' },
+                  { label: t('platformFee'), value: formatQAR(earnings.summary?.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
+                  { label: t('yourEarnings'), value: formatQAR(earnings.summary?.totalEarnings || 0), icon:'💰', color:'#10b981' },
+                  { label: t('totalPaid'), value: formatQAR(earnings.summary?.totalPaid || 0), icon:'✅', color:'#3b82f6' },
+                  { label: t('pendingPayout'), value: formatQAR(earnings.summary?.pendingPayout || 0), icon:'⏳', color:'#ef4444' },
                 ].map(stat => (
                   <div key={stat.label} style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
                     <p style={{fontSize:28, marginBottom:8}}>{stat.icon}</p>
@@ -1161,52 +1160,52 @@ function VendorDashboard() {
                 ))}
               </div>
               <div style={{background:'#f8f9fa', borderRadius:12, padding:20, marginBottom:24}}>
-                <h3 style={{marginBottom:12, fontSize:16}}>Your Bank IBAN</h3>
+                <h3 style={{marginBottom:12, fontSize:16}}>{t('yourBankIban')}</h3>
                 <div style={{display:'flex', gap:12}}>
                   <input style={{...styles.input, flex:1, marginBottom:0}} placeholder="QA57DOHB..." value={iban} onChange={e => setIban(e.target.value)} />
-                  <button onClick={handleSaveIban} style={{...styles.submitBtn, width:'auto', padding:'12px 20px'}}>Save</button>
+                  <button onClick={handleSaveIban} style={{...styles.submitBtn, width:'auto', padding:'12px 20px'}}>{t('save')}</button>
                 </div>
                 {ibanMsg && <p style={{color:'#10b981', marginTop:8, fontSize:13}}>{ibanMsg}</p>}
               </div>
-              <h3 style={{marginBottom:16}}>Order History</h3>
+              <h3 style={{marginBottom:16}}>{t('orderHistory')}</h3>
               {earnings.orderItems?.length === 0 ? (
-                <p style={{color:'#888', textAlign:'center', padding:32}}>No orders yet</p>
+                <p style={{color:'#888', textAlign:'center', padding:32}}>{t('noOrders')}</p>
               ) : earnings.orderItems?.map(item => (
                 <div key={item.id} style={{border:'1px solid #eee', borderRadius:10, padding:16, marginBottom:12, background:'#fff'}}>
                   <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:8}}>
                     <div>
                       <p style={{fontWeight:600}}>{item.product?.name}</p>
-                      <p style={{color:'#666', fontSize:13}}>Order #{item.order?.id?.slice(0,8)}... - Qty: {item.quantity}</p>
+                      <p style={{color:'#666', fontSize:13}}>{t('order')} #{item.order?.id?.slice(0,8)}... - {t('qty')}: {item.quantity}</p>
                     </div>
                     <div style={{textAlign:'right'}}>
-                      <p style={{color:'#666', fontSize:13}}>Sale: {formatQAR(item.unitPrice * item.quantity)}</p>
-                      <p style={{color:'#f97316', fontSize:13}}>Fee: -{formatQAR(item.platformFee)}</p>
-                      <p style={{color:'#10b981', fontWeight:700}}>You get: {formatQAR(item.vendorEarning)}</p>
+                      <p style={{color:'#666', fontSize:13}}>{t('sale')}: {formatQAR(item.unitPrice * item.quantity)}</p>
+                      <p style={{color:'#f97316', fontSize:13}}>{t('fee')}: -{formatQAR(item.platformFee)}</p>
+                      <p style={{color:'#10b981', fontWeight:700}}>{t('youGet')}: {formatQAR(item.vendorEarning)}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </>
-          ) : <p style={{padding:40, color:'#666'}}>Loading earnings...</p>}
+          ) : <p style={{padding:40, color:'#666'}}>{t('loading')}</p>}
         </div>
       )}
     </div>
   )
 }
 
-function CreateStore({ onCreated }) {
+function CreateStore({ onCreated, t = (k) => k }) {
   const [form, setForm] = useState({ storeName: '', description: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
   const handleCreate = async () => {
-    if (!form.storeName) { setError('Store name is required'); return }
+    if (!form.storeName) { setError(t('storeNameRequired')); return }
     setSaving(true)
     try {
       await vendors.createStore(form)
       onCreated()
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create store')
+      setError(err.response?.data?.error || t('createStoreFailed'))
       setSaving(false)
     }
   }
@@ -1214,10 +1213,10 @@ function CreateStore({ onCreated }) {
   return (
     <div>
       {error && <p style={styles.error}>{error}</p>}
-      <input style={styles.input} placeholder="Store Name *" value={form.storeName} onChange={e => setForm({...form, storeName: e.target.value})} />
-      <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder="Store Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+      <input style={styles.input} placeholder={t('storeName')} value={form.storeName} onChange={e => setForm({...form, storeName: e.target.value})} />
+      <textarea style={{...styles.input, height:100, resize:'vertical'}} placeholder={t('storeDescription')} value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
       <button onClick={handleCreate} disabled={saving} style={{...styles.submitBtn, opacity: saving ? 0.7 : 1}}>
-        {saving ? 'Creating...' : 'Create My Store'}
+        {saving ? t('creating') : t('createMyStore')}
       </button>
     </div>
   )
@@ -1267,17 +1266,17 @@ function App() {
     <BrowserRouter>
       <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} language={language} setLanguage={setLanguage} t={t} />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home t={t} />} />
         <Route path="/products" element={<Products t={t} language={language} />} />
-        <Route path="/products/:id" element={<ProductDetail user={user} />} />
-        <Route path="/login" element={<Login onLogin={setUser} />} />
-        <Route path="/register" element={<Register onLogin={setUser} />} />
-        <Route path="/cart" element={<Cart onCartUpdate={setCartCount} />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/orders" element={<Orders user={user} />} />
-        <Route path="/orders/:id" element={<OrderDetail />} />
-        <Route path="/vendor" element={<VendorDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/products/:id" element={<ProductDetail user={user} t={t} />} />
+        <Route path="/login" element={<Login onLogin={setUser} t={t} />} />
+        <Route path="/register" element={<Register onLogin={setUser} t={t} />} />
+        <Route path="/cart" element={<Cart onCartUpdate={setCartCount} t={t} />} />
+        <Route path="/checkout" element={<Checkout t={t} />} />
+        <Route path="/orders" element={<Orders user={user} t={t} />} />
+        <Route path="/orders/:id" element={<OrderDetail t={t} />} />
+        <Route path="/vendor" element={<VendorDashboard t={t} />} />
+        <Route path="/admin" element={<AdminDashboard t={t} />} />
       </Routes>
     </BrowserRouter>
   )
@@ -1318,15 +1317,3 @@ const styles = {
 }
 
 export default App
-
-
-
-
-
-
-
-
-
-
-
-
