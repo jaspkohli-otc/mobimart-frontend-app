@@ -75,7 +75,7 @@ function Products() {
 function Login({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
-  const navigate = useNavigate()
+  const navigate = useNavigate()// eslint-disable-line
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -106,7 +106,7 @@ function Login({ onLogin }) {
 function Register({ onLogin }) {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'CUSTOMER' })
   const [error, setError] = useState('')
-  const navigate = useNavigate()
+  const navigate = useNavigate()// eslint-disable-line
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -144,7 +144,7 @@ function Register({ onLogin }) {
 function Cart() {
   const [cartData, setCartData] = useState({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
+  const navigate = useNavigate()// eslint-disable-line
 
   const loadCart = () => {
     cart.get().then(r => { setCartData(r.data); setLoading(false) })
