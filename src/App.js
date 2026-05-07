@@ -90,6 +90,11 @@ function Products({ t = (k) => k, language = 'EN' }) {
 
   return (
     <div style={styles.page}>
+      {/* Page Header */}
+      <div style={{marginBottom:24}}>
+        <h1 style={{fontSize:26, fontWeight:800, color:'#0f1923', marginBottom:4}}>{t('shop')}</h1>
+        <p style={{color:'#888', fontSize:14}}>{t('heroSub')}</p>
+      </div>
       <input style={styles.search} placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
         <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
@@ -147,19 +152,33 @@ function Products({ t = (k) => k, language = 'EN' }) {
         <div style={styles.grid}>
           {filtered.map(p => {
             const cond = conditionLabel(p.condition)
+            const imgSrc = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`) : null
+            const avgRating = Math.round(p.avgRating || 0)
             return (
-              <div key={p.id} style={styles.card}>
-                <div style={styles.cardImg}>
-                  {p.images?.[0] ? <img src={p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`} alt={p.name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : '📱'}
+              <div key={p.id} style={{border:'1px solid #eee', borderRadius:16, overflow:'hidden', background:'#fff', boxShadow:'0 2px 12px rgba(0,0,0,0.07)', transition:'transform 0.2s, box-shadow 0.2s', cursor:'pointer'}}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.13)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)' }}>
+                {/* Image */}
+                <div style={{height:180, background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:64, overflow:'hidden', position:'relative'}}>
+                  {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : '📱'}
+                  <span style={{position:'absolute', top:10, left:10, padding:'3px 8px', borderRadius:6, fontSize:11, fontWeight:700, background: cond.bg, color: cond.color}}>{cond.text}</span>
                 </div>
-                <div style={styles.cardBody}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
-                    <p style={styles.cardVendor}>{p.vendor?.storeName} - {p.category?.name}</p>
-                    <span style={{padding:'2px 8px', borderRadius:4, fontSize:11, fontWeight:600, background: cond.bg, color: cond.color}}>{cond.text}</span>
+                {/* Body */}
+                <div style={{padding:'14px 16px'}}>
+                  <p style={{fontSize:11, color:'#aaa', marginBottom:4, textTransform:'uppercase', letterSpacing:0.5}}>{p.vendor?.storeName} · {p.category?.name}</p>
+                  <h3 style={{fontSize:15, fontWeight:700, color:'#0f1923', marginBottom:8, lineHeight:1.4, minHeight:40}}>{p.name}</h3>
+                  {/* Stars */}
+                  <div style={{display:'flex', alignItems:'center', gap:4, marginBottom:10}}>
+                    {[1,2,3,4,5].map(s => (
+                      <span key={s} style={{fontSize:13, color: s <= avgRating ? '#f97316' : '#e5e7eb'}}>★</span>
+                    ))}
+                    {p.reviewCount > 0 && <span style={{fontSize:11, color:'#aaa', marginLeft:2}}>({p.reviewCount})</span>}
                   </div>
-                  <h3 style={styles.cardName}>{p.name}</h3>
-                  <p style={styles.cardPrice}>{formatQAR(p.price)}</p>
-                  <Link to={`/products/${p.id}`} style={styles.cardBtn}>{t('viewDetails')}</Link>
+                  {/* Price */}
+                  <p style={{fontSize:20, fontWeight:800, color:'#f97316', marginBottom:12}}>{formatQAR(p.price)}</p>
+                  <Link to={`/products/${p.id}`} style={{display:'block', textAlign:'center', background:'#0f1923', color:'#fff', padding:'10px 16px', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:600, letterSpacing:0.3}}>
+                    {t('viewDetails')}
+                  </Link>
                 </div>
               </div>
             )
