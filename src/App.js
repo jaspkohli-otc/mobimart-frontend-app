@@ -1079,18 +1079,19 @@ function AdminDashboard({ t = (k) => k }) {
     } catch { alert('Failed to update document') }
   }
 
-  const handleVendorApproval = async (vendorId, status, note = '') => {
-    setApprovingId(vendorId)
-    try {
-      await fetch('/api/vendors/admin/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ vendorId, status, rejectionNote: note })
-      })
-      await loadData()
-    } catch (err) { alert('Failed to update vendor status') }
-    setApprovingId(null)
-  }
+const handleVendorApproval = async (vendorId, status, note = '') => {
+  setApprovingId(vendorId)
+  try {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/vendors/admin/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      body: JSON.stringify({ vendorId, status, note })
+    })
+    if (!res.ok) throw new Error('Failed')
+    await loadData()
+  } catch (err) { alert('Failed to update vendor status') }
+  setApprovingId(null)
+}
 
   const handleAddSubscription = async () => {
     if (!subForm.vendorId) { alert('Select a vendor'); return }
@@ -1129,7 +1130,6 @@ function AdminDashboard({ t = (k) => k }) {
         {tabBtn('kyc', t('kycDocuments'))}
         {tabBtn('subscriptions', t('subscriptions'))}
         {tabBtn('payouts', t('payouts'))}
-        {tabBtn('kyc', t('kycDocuments'))}
       </div>
 
       {tab === 'overview' && stats && (
