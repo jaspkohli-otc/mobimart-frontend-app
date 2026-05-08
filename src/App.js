@@ -1546,9 +1546,14 @@ function VendorDashboard({ t = (k) => k }) {
     }).catch(() => setLoading(false))
   }
 
-  const loadDocs = () => {
-    fetch('https://mobimart-backend-production.up.railway.app/api/vendors/documents', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-      .then(r => r.json()).then(setDocs).catch(() => {})
+const loadDocs = () => {
+  fetch('https://mobimart-backend-production.up.railway.app/api/vendors/documents', {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  }).then(r => r.json()).then(data => {
+    if (Array.isArray(data)) setDocs(data)
+    else setDocs([])
+  }).catch(() => setDocs([]))
+}
   }
 
   const loadEarnings = () => {
