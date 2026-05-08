@@ -1547,7 +1547,7 @@ function VendorDashboard({ t = (k) => k }) {
   }
 
   const loadDocs = () => {
-    fetch('/api/vendors/documents', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+    fetch('https://mobimart-backend-production.up.railway.app/api/vendors/documents', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
       .then(r => r.json()).then(setDocs).catch(() => {})
   }
 
@@ -1591,7 +1591,7 @@ function VendorDashboard({ t = (k) => k }) {
       formData.append('document', docFile)
       formData.append('docType', docType)
       formData.append('docName', docFile.name)
-      const res = await fetch('/api/vendors/documents/upload', {
+      const res = await fetch(`https://mobimart-backend-production.up.railway.app/api/vendors/documents/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: formData
