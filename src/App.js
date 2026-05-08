@@ -828,6 +828,185 @@ function ProductDetail({ user, t = (k) => k }) {
   )
 }
 
+function KYCDocumentsTab({ t = (k) => k }) {
+  const [vendors, setVendors] = React.useState([])
+  const [loading, setLoading] = React.useState(true)
+  const [reviewNote, setReviewNote] = React.useState({})
+  const [msg, setMsg] = React.useState('')
+  const [expandedVendor, setExpandedVendor] = React.useState(null)
+
+  const token = localStorage.getItem('token')
+  const API = process.env.REACT_APP_API_URL
+
+  const loadDocs = () => {
+    fetch(`${API}/vendors/admin/documents`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setVendors(data)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }
+
+  React.useEffect(() => { loadDocs() }, []) // eslint-disable-line
+
+  const handleReview = async (docId, status) => {
+    try {
+      const res = await fetch(`${API}/vendors/admin/documents/${docId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status, note: reviewNote[docId] || '' })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setMsg(data.vendorFullyApproved
+        ? '✅ Document approved — Vendor is now fully verified!'
+        : `Document ${status.toLowerCase()} successfully`)
+      setTimeout(() => setMsg(''), 4000)
+      loadDocs()
+    } catch (err) {
+      setMsg('Failed to update document')
+    }
+  }
+
+  const docTypeLabel = {
+    CR_COPY: 'CR Copy',
+    TRADE_LICENSE: 'Trade License',
+    SIGNATORY_QID: 'Signatory QID',
+    CONTRACT_COPY: 'Contract Copy'
+  }
+
+  const statusBadge = (status) => ({
+    PENDING: { bg: '#fff7ed', color: '#92400e', text: '⏳ Pending' },
+    APPROVED: { bg: '#d1fae5', color: '#065f46', text: '✅ Approved' },
+    REJECTED: { bg: '#fee2e2', color: '#991b1b', text: '❌ Rejected' }
+  }[status] || { bg: '#f3f4f6', color: '#666', text: status })
+
+  if (loading) return <p style={{padding:40, color:'#666'}}>Loading...</p>
+
+  return (
+    <div>
+      {msg && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16, fontWeight:600}}>{msg}</div>}
+
+      {vendors.length === 0 ? (
+        <p style={{color:'#888', textAlign:'center', padding:40}}>No vendor documents submitted yet</p>
+      ) : vendors.map(vendor => {
+        const hasDocs = vendor.documents?.length > 0
+        const requiredTypes = ['CR_COPY', 'TRADE_LICENSE', 'SIGNATORY_QID']
+        const allApproved = requiredTypes.every(type =>
+          vendor.documents?.some(d => d.docType === type && d.status === 'APPROVED')
+        )
+        const hasPending = vendor.documents?.some(d => d.status === 'PENDING')
+        const isExpanded = expandedVendor === vendor.id
+
+        return (
+          <div key={vendor.id} style={{border:'1px solid #eee', borderRadius:12, marginBottom:16, overflow:'hidden', background:'#fff'}}>
+            <div
+              onClick={() => setExpandedVendor(isExpanded ? null : vendor.id)}
+              style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 20px', cursor:'pointer', background: allApproved ? '#f0fdf4' : hasPending ? '#fff7ed' : '#fafafa'}}
+            >
+              <div style={{display:'flex', alignItems:'center', gap:12}}>
+                <span style={{fontSize:24}}>🏪</span>
+                <div>
+                  <p style={{fontWeight:700, fontSize:15, marginBottom:2}}>{vendor.storeName}</p>
+                  <p style={{color:'#666', fontSize:13}}>{vendor.user?.name} · {vendor.user?.email}</p>
+                </div>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:12}}>
+                <span style={{padding:'4px 12px', borderRadius:20, fontSize:12, fontWeight:700,
+                  background: allApproved ? '#d1fae5' : hasPending ? '#fff7ed' : '#f3f4f6',
+                  color: allApproved ? '#065f46' : hasPending ? '#92400e' : '#666'}}>
+                  {allApproved ? '✅ KYC Complete' : hasPending ? `⏳ ${vendor.documents?.filter(d=>d.status==='PENDING').length} Pending` : hasDocs ? '❌ Action Needed' : '📭 No Docs'}
+                </span>
+                <span style={{color:'#999', fontSize:18}}>{isExpanded ? '▲' : '▼'}</span>
+              </div>
+            </div>
+
+            {isExpanded && (
+              <div style={{padding:'0 20px 20px'}}>
+                {!hasDocs ? (
+                  <p style={{color:'#888', padding:'20px 0', textAlign:'center'}}>No documents uploaded yet</p>
+                ) : (
+                  <>
+                    {(vendor.ibanNumber || vendor.bankName) && (
+                      <div style={{background:'#f8f9fa', borderRadius:10, padding:16, marginTop:16, marginBottom:8}}>
+                        <p style={{fontWeight:700, fontSize:13, marginBottom:8, color:'#1e3a5f'}}>🏦 Bank Details</p>
+                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, fontSize:13, color:'#555'}}>
+                          {vendor.accountHolderName && <p>Holder: {vendor.accountHolderName}</p>}
+                          {vendor.bankName && <p>Bank: {vendor.bankName}</p>}
+                          {vendor.ibanNumber && <p>IBAN: {vendor.ibanNumber}</p>}
+                          {vendor.accountNumber && <p>Account: {vendor.accountNumber}</p>}
+                          {vendor.bankBranch && <p>Branch: {vendor.bankBranch}</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    {vendor.documents.map(doc => {
+                      const badge = statusBadge(doc.status)
+                      return (
+                        <div key={doc.id} style={{border:'1px solid #f0f0f0', borderRadius:10, padding:16, marginTop:12}}>
+                          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:8}}>
+                            <div style={{display:'flex', gap:10, alignItems:'flex-start'}}>
+                              <span style={{fontSize:28}}>📄</span>
+                              <div>
+                                <p style={{fontWeight:600, fontSize:14, marginBottom:2}}>{doc.docName}</p>
+                                <p style={{color:'#888', fontSize:12}}>{docTypeLabel[doc.docType] || doc.docType} · Uploaded {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                                {doc.note && <p style={{color:'#ef4444', fontSize:12, marginTop:4}}>Note: {doc.note}</p>}
+                              </div>
+                            </div>
+                            <div style={{display:'flex', alignItems:'center', gap:8}}>
+                              <span style={{padding:'3px 10px', borderRadius:20, fontSize:12, fontWeight:600, background: badge.bg, color: badge.color}}>
+                                {badge.text}
+                              </span>
+                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                                style={{background:'#1e3a5f', color:'#fff', padding:'6px 12px', borderRadius:6, fontSize:12, textDecoration:'none', fontWeight:600}}>
+                                View Doc
+                              </a>
+                            </div>
+                          </div>
+
+                          {doc.status === 'PENDING' && (
+                            <div style={{marginTop:12, paddingTop:12, borderTop:'1px solid #f0f0f0'}}>
+                              <input
+                                style={{width:'100%', padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:13, boxSizing:'border-box', marginBottom:8}}
+                                placeholder="Rejection note (required if rejecting)"
+                                value={reviewNote[doc.id] || ''}
+                                onChange={e => setReviewNote({...reviewNote, [doc.id]: e.target.value})}
+                              />
+                              <div style={{display:'flex', gap:8}}>
+                                <button onClick={() => handleReview(doc.id, 'APPROVED')}
+                                  style={{flex:1, padding:'8px', background:'#10b981', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>
+                                  ✅ Approve
+                                </button>
+                                <button onClick={() => handleReview(doc.id, 'REJECTED')}
+                                  style={{flex:1, padding:'8px', background:'#ef4444', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>
+                                  ❌ Reject
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {doc.status !== 'PENDING' && (
+                            <div style={{marginTop:8}}>
+                              <button
+                                onClick={() => handleReview(doc.id, doc.status === 'APPROVED' ? 'REJECTED' : 'APPROVED')}
+                                style={{padding:'6px 14px', background:'#f8f9fa', border:'1px solid #ddd', borderRadius:6, cursor:'pointer', fontSize:12, color:'#555'}}>
+                                {doc.status === 'APPROVED' ? 'Revoke Approval' : 'Approve Instead'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 function AdminDashboard({ t = (k) => k }) {
   const [tab, setTab] = useState('overview')
   const [stats, setStats] = useState(null)
@@ -950,6 +1129,7 @@ function AdminDashboard({ t = (k) => k }) {
         {tabBtn('kyc', t('kycDocuments'))}
         {tabBtn('subscriptions', t('subscriptions'))}
         {tabBtn('payouts', t('payouts'))}
+        {tabBtn('kyc', t('kycDocuments'))}
       </div>
 
       {tab === 'overview' && stats && (
@@ -1306,6 +1486,7 @@ function AdminDashboard({ t = (k) => k }) {
                         {vendor.pendingPayout > 0 && (
                           <button onClick={() => handleMarkPaid(vendor.id, vendor.pendingPayout)} style={{padding:'8px 16px', background:'#10b981', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>{t('markPaid')}</button>
                         )}
+                        
                       </div>
                     </div>
                   </div>
@@ -1318,6 +1499,7 @@ function AdminDashboard({ t = (k) => k }) {
     </div>
   )
 }
+{tab === 'kyc' && <KYCDocumentsTab t={t} />}
 
 function VendorDashboard({ t = (k) => k }) {
   const [store, setStore] = useState(null)
