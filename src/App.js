@@ -1496,10 +1496,11 @@ function AdminDashboard({ t = (k) => k }) {
           ) : <p style={{padding:40, color:'#666'}}>{t('loading')}</p>}
         </div>
       )}
+    {tab === 'kyc' && <KYCDocumentsTab t={t} />}
     </div>
   )
 }
-{tab === 'kyc' && <KYCDocumentsTab t={t} />}
+
 
 function VendorDashboard({ t = (k) => k }) {
   const [store, setStore] = useState(null)
