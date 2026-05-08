@@ -1554,7 +1554,6 @@ const loadDocs = () => {
     else setDocs([])
   }).catch(() => setDocs([]))
 }
-  }
 
   const loadEarnings = () => {
     vendors.getMyEarnings().then(r => {
