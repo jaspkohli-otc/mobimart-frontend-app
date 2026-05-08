@@ -1082,9 +1082,10 @@ function AdminDashboard({ t = (k) => k }) {
 const handleVendorApproval = async (vendorId, status, note = '') => {
   setApprovingId(vendorId)
   try {
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/vendors/admin/status`, {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`https://mobimart-backend-production.up.railway.app/api/vendors/admin/status`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ vendorId, status, note })
     })
     if (!res.ok) throw new Error('Failed')
