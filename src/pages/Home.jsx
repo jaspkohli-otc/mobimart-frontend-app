@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 // ────────────────────────────────────────────────────────────────────────
 //  Home — MobiMart landing page (v26 redesign, May 2026)
@@ -17,7 +17,6 @@ import { Link, useNavigate } from 'react-router-dom'
 
 function Home({ t = (k) => k, language = 'EN' }) {
   const isRTL = language === 'AR'
-  const navigate = useNavigate()
   const [showBanner, setShowBanner] = useState(true)
 
   // Persist banner dismissal across sessions
@@ -243,9 +242,6 @@ const IconCase = () => (
 )
 const IconHeadphones = () => (
   <svg {...svgProps}><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-)
-const IconShield = () => (
-  <svg {...svgProps}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
 )
 
 const IconUser = () => (
