@@ -3,7 +3,14 @@ import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'reac
 import { auth, products, cart, orders, vendors } from './api'
 import './App.css'
 import translations from './translations';
-
+import Terms from './pages/Terms'
+import Home from './pages/Home'
+import Privacy from './pages/Privacy'
+import RefundPolicy from './pages/RefundPolicy'
+import Shipping from './pages/Shipping'
+import Contact from './pages/Contact'
+import SiteFooter from './components/SiteFooter'
+import ScrollToTop from './components/ScrollToTop'
 const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
 
 const conditionLabel = (c) => {
@@ -40,17 +47,6 @@ function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
         <button onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')} style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}>{language === 'EN' ? 'AR' : 'EN'}</button>
       </div>
     </nav>
-  )
-}
-
-function Home({ t }) {
-  return (
-    <div style={styles.hero}>
-      <p style={{color:'#f97316', fontSize:14, fontWeight:600, marginBottom:8, letterSpacing:1}}>by JASPR Trading</p>
-      <h1 style={styles.heroTitle}>{t('heroTitle')}</h1>
-      <p style={styles.heroSub}>{t('heroSub')}</p>
-      <Link to="/products" style={styles.heroBtn}>{t('shopNow')}</Link>
-    </div>
   )
 }
 
@@ -2045,9 +2041,10 @@ function App() {
 
   return (
     <BrowserRouter>
+    <ScrollToTop />
       <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} language={language} setLanguage={setLanguage} t={t} />
       <Routes>
-        <Route path="/" element={<Home t={t} />} />
+        <Route path="/" element={<Home t={t} language={language} />} />
         <Route path="/products" element={<Products t={t} language={language} />} />
         <Route path="/products/:id" element={<ProductDetail user={user} t={t} />} />
         <Route path="/login" element={<Login onLogin={setUser} t={t} />} />
@@ -2058,7 +2055,13 @@ function App() {
         <Route path="/orders/:id" element={<OrderDetail t={t} />} />
         <Route path="/vendor" element={<VendorDashboard t={t} />} />
         <Route path="/admin" element={<AdminDashboard t={t} />} />
+        <Route path="/terms" element={<Terms t={t} language={language} />} />
+        <Route path="/privacy" element={<Privacy t={t} language={language} />} />
+        <Route path="/refund-policy" element={<RefundPolicy t={t} language={language} />} />
+        <Route path="/shipping" element={<Shipping t={t} language={language} />} />
+        <Route path="/contact" element={<Contact t={t} language={language} />} />
       </Routes>
+      <SiteFooter t={t} language={language} />
     </BrowserRouter>
   )
 }

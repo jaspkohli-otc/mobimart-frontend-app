@@ -12,6 +12,28 @@ API.interceptors.request.use((config) => {
   return config
 })
 
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Catch 401 Unauthorized from any API call.
+    // If user has no token, send them to /login.
+    // If token exists but is expired/invalid, clear it and send to /login.
+    if (error.response?.status === 401) {
+      const path = window.location.pathname
+      // Don't redirect if already on auth pages (avoids loop)
+      const authPaths = ['/login', '/register']
+      if (!authPaths.includes(path)) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        // Use window.location instead of react-router because this file
+        // doesn't have access to router context.
+        window.location.href = '/login?redirect=' + encodeURIComponent(path)
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const auth = {
   register: (data) => API.post('/auth/register', data),
   login: (data) => API.post('/auth/login', data),

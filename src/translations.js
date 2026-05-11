@@ -1,3 +1,7 @@
+import { legalEN, legalAR } from './translations-legal'
+import { siteFooterEN, siteFooterAR } from './translations-sitefooter'
+import { homeEN, homeAR } from './translations-home'
+
 const translations = {
   EN: {
     shop: "Shop", login: "Login", register: "Register", myOrders: "My Orders",
@@ -125,6 +129,9 @@ const translations = {
     easyReturns: "Easy returns within 7 days",
     verifiedSeller: "Verified Seller", shipsIn24h: "Ships in 24h",
     shipsQatar: "Ships within Qatar",
+    ...legalEN,
+    ...siteFooterEN,
+    ...homeEN,
   },
   AR: {
     shop: "تسوق", login: "تسجيل الدخول", register: "إنشاء حساب", myOrders: "طلباتي",
@@ -252,6 +259,9 @@ const translations = {
     easyReturns: "إرجاع سهل خلال 7 أيام",
     verifiedSeller: "بائع موثق", shipsIn24h: "يشحن خلال 24 ساعة",
     shipsQatar: "يشحن داخل قطر",
+   ...legalAR,
+    ...siteFooterAR,
+    ...homeAR,
   },
 };
 
