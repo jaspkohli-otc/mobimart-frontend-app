@@ -1,5 +1,4 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import PolicyFooter from '../components/PolicyFooter'
 
 function Privacy({ t = (k) => k, language = 'EN' }) {

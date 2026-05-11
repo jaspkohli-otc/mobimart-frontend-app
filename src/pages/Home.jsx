@@ -18,7 +18,6 @@ import { Link, useNavigate } from 'react-router-dom'
 function Home({ t = (k) => k, language = 'EN' }) {
   const isRTL = language === 'AR'
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
   const [showBanner, setShowBanner] = useState(true)
 
   // Persist banner dismissal across sessions
@@ -32,14 +31,7 @@ function Home({ t = (k) => k, language = 'EN' }) {
     localStorage.setItem('mm_comingsoon_dismissed', 'v1')
   }
 
-  const onSearchSubmit = (e) => {
-    e.preventDefault()
-    if (search.trim()) {
-      navigate(`/products?search=${encodeURIComponent(search.trim())}`)
-    } else {
-      navigate('/products')
-    }
-  }
+
 
   // Categories — Lucide-style SVG icons inline (no external dep)
   const categories = [
