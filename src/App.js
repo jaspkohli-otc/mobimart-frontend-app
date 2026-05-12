@@ -219,10 +219,9 @@ function Products({ t = (k) => k, language = 'EN' }) {
                   </Link>
                 </div>
               </div>
-            )
-          })}
+              )
+            })}
         </div>
-      )}
       </div>
     </div>
   )
