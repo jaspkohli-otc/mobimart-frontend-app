@@ -193,7 +193,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
             const imgSrc = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`) : null
             const avgRating = Math.round(p.avgRating || 0)
             return (
-              <div key={p.id} style={{border:'1px solid #eee', borderRadius:16, overflow:'hidden', background:'#fff', boxShadow:'0 2px 12px rgba(0,0,0,0.07)', transition:'transform 0.2s, box-shadow 0.2s', cursor:'pointer'}}
+              <div key={p.id} style={{border:'1px solid #eef0f3', borderRadius:24, overflow:'hidden', background:'#fff', boxShadow:'0 10px 30px rgba(15,25,35,0.08)', transition:'all .3s ease', cursor:'pointer'}}
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.13)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)' }}>
                 {/* Image */}
