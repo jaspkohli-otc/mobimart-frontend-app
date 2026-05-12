@@ -2,9 +2,10 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import PolicyFooter from '../components/PolicyFooter'
 
-// Terms of Service — JASPR Trading / MobiMart
+// Terms & Conditions — JASPR Trading / MobiMart
 function Terms({ t = (k) => k, language = 'EN' }) {
   const isRTL = language === 'AR'
+
   const sections = [
     'About', 'Accounts', 'Buyers', 'Vendors', 'Listings', 'Orders',
     'Delivery', 'Returns', 'Prohibited', 'IP', 'Liability',
@@ -14,7 +15,7 @@ function Terms({ t = (k) => k, language = 'EN' }) {
   return (
     <div style={s.page} dir={isRTL ? 'rtl' : 'ltr'}>
       <div style={s.doc}>
-        <div style={s.meta}>{t('legalEffective')} 9 May 2026 · {t('legalVersion')} 1.0</div>
+        <div style={s.meta}>{t('legalEffective')} 9 May 2026 · {t('legalVersion')} 2.0</div>
         <h1 style={s.title}>{t('legalTermsTitle')}</h1>
         <p style={s.lede}>{t('legalTermsLede')}</p>
 
@@ -168,29 +169,127 @@ function Section({ num, id, title, children }) {
     </section>
   )
 }
+
 const P  = ({ children }) => <p style={s.p}>{children}</p>
 const H3 = ({ children }) => <h3 style={s.h3}>{children}</h3>
 const UL = ({ children }) => <ul style={s.ul}>{children}</ul>
 const LI = ({ children }) => <li style={s.li}>{children}</li>
 
 const s = {
-  page: { background: '#fafaf7', minHeight: '100vh', fontFamily: '"Source Serif 4", Georgia, "Times New Roman", serif', color: '#0f1923', fontSize: 17, lineHeight: 1.7 },
-  doc: { maxWidth: 760, margin: '0 auto', padding: '64px 24px 96px', background: '#ffffff', borderLeft: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', minHeight: '100vh' },
-  meta: { fontFamily: '"Inter", system-ui, sans-serif', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#6b7280', marginBottom: 16 },
-  title: { fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 700, fontSize: 44, lineHeight: 1.1, letterSpacing: '-0.025em', color: '#0f1923', marginBottom: 24 },
-  lede: { fontSize: 19, color: '#1e3a5f', fontStyle: 'italic', marginBottom: 48, paddingBottom: 32, borderBottom: '1px solid #e5e7eb' },
-  toc: { background: '#fafaf7', border: '1px solid #e5e7eb', padding: '20px 24px', marginBottom: 48, fontFamily: '"Inter", system-ui, sans-serif', fontSize: 14 },
-  tocLabel: { textTransform: 'uppercase', letterSpacing: '0.15em', fontSize: 11, color: '#6b7280', marginBottom: 12, fontWeight: 600 },
-  tocList: { margin: 0, paddingLeft: 0, listStyle: 'none', columns: 2, columnGap: 32 },
-  tocItem: { marginBottom: 6, breakInside: 'avoid' },
-  tocLink: { color: '#1e3a5f', textDecoration: 'none' },
-  h2: { fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 600, fontSize: 26, lineHeight: 1.25, letterSpacing: '-0.015em', color: '#0f1923', marginTop: 56, marginBottom: 16, scrollMarginTop: 24 },
-  h2Num: { color: '#f97316', fontWeight: 500, marginRight: 12 },
-  h3: { fontFamily: '"Inter Tight", system-ui, sans-serif', fontWeight: 600, fontSize: 18, color: '#1e3a5f', marginTop: 32, marginBottom: 12 },
-  p: { marginBottom: 16, color: '#0f1923' },
-  ul: { marginLeft: 24, marginBottom: 16, paddingLeft: 0 },
-  li: { marginBottom: 8 },
-  link: { color: '#f97316', textDecoration: 'underline', textUnderlineOffset: 2 },
+  page: {
+    background: '#fafaf7',
+    minHeight: '100vh',
+    fontFamily: '"Source Serif 4", Georgia, "Times New Roman", serif',
+    color: '#0f1923',
+    fontSize: 17,
+    lineHeight: 1.7
+  },
+  doc: {
+    maxWidth: 760,
+    margin: '0 auto',
+    padding: '64px 24px 96px',
+    background: '#ffffff',
+    borderLeft: '1px solid #e5e7eb',
+    borderRight: '1px solid #e5e7eb',
+    minHeight: '100vh'
+  },
+  meta: {
+    fontFamily: '"Inter", system-ui, sans-serif',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: '0.18em',
+    color: '#6b7280',
+    marginBottom: 16
+  },
+  title: {
+    fontFamily: '"Inter Tight", system-ui, sans-serif',
+    fontWeight: 700,
+    fontSize: 44,
+    lineHeight: 1.1,
+    letterSpacing: '-0.025em',
+    color: '#0f1923',
+    marginBottom: 24
+  },
+  lede: {
+    fontSize: 19,
+    color: '#1e3a5f',
+    fontStyle: 'italic',
+    marginBottom: 48,
+    paddingBottom: 32,
+    borderBottom: '1px solid #e5e7eb'
+  },
+  toc: {
+    background: '#fafaf7',
+    border: '1px solid #e5e7eb',
+    padding: '20px 24px',
+    marginBottom: 48,
+    fontFamily: '"Inter", system-ui, sans-serif',
+    fontSize: 14
+  },
+  tocLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: '0.15em',
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 12,
+    fontWeight: 600
+  },
+  tocList: {
+    margin: 0,
+    paddingLeft: 0,
+    listStyle: 'none',
+    columns: 2,
+    columnGap: 32
+  },
+  tocItem: {
+    marginBottom: 6,
+    breakInside: 'avoid'
+  },
+  tocLink: {
+    color: '#1e3a5f',
+    textDecoration: 'none'
+  },
+  h2: {
+    fontFamily: '"Inter Tight", system-ui, sans-serif',
+    fontWeight: 600,
+    fontSize: 26,
+    lineHeight: 1.25,
+    letterSpacing: '-0.015em',
+    color: '#0f1923',
+    marginTop: 56,
+    marginBottom: 16,
+    scrollMarginTop: 24
+  },
+  h2Num: {
+    color: '#f97316',
+    fontWeight: 500,
+    marginInlineEnd: 12
+  },
+  h3: {
+    fontFamily: '"Inter Tight", system-ui, sans-serif',
+    fontWeight: 600,
+    fontSize: 18,
+    color: '#1e3a5f',
+    marginTop: 32,
+    marginBottom: 12
+  },
+  p: {
+    marginBottom: 16,
+    color: '#0f1923'
+  },
+  ul: {
+    marginInlineStart: 24,
+    marginBottom: 16,
+    paddingInlineStart: 0
+  },
+  li: {
+    marginBottom: 8
+  },
+  link: {
+    color: '#f97316',
+    textDecoration: 'underline',
+    textUnderlineOffset: 2
+  }
 }
 
 export default Terms
