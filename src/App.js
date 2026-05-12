@@ -186,7 +186,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
     {t('clearFilters')}
   </button>
 </div>
-      ) : (
+       : (
         <div style={styles.grid}>
           {filtered.map(p => {
             const cond = conditionLabel(p.condition)
