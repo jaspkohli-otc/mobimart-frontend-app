@@ -161,11 +161,31 @@ function Products({ t = (k) => k, language = 'EN' }) {
           ))}
         </div>
       )}
-      {loading ? <p>{t('loading')}</p> : filtered.length === 0 ? (
-        <div style={{textAlign:'center', padding:60}}>
-          <p style={{color:'#666', marginBottom:16}}>{t('noProducts')}</p>
-          <button onClick={clearFilters} style={styles.heroBtn}>{t('clearFilters')}</button>
-        </div>
+      <div style={{
+  textAlign: 'center',
+  padding: '80px 24px',
+  background: '#fff',
+  borderRadius: 24,
+  boxShadow: '0 12px 32px rgba(15,25,35,0.08)',
+  border: '1px solid #eef0f3',
+  maxWidth: 620,
+  margin: '40px auto'
+}}>
+  <div style={{ fontSize: 54, marginBottom: 16 }}>🛒</div>
+  <h3 style={{ fontSize: 26, color: '#0f1923', marginBottom: 10 }}>
+    {t('noProducts')}
+  </h3>
+  <p style={{ color: '#667085', marginBottom: 24 }}>
+    Try changing your filters or check back soon for new verified products.
+  </p>
+  <button onClick={clearFilters} style={{
+    ...styles.heroBtn,
+    padding: '14px 28px',
+    borderRadius: 14
+  }}>
+    {t('clearFilters')}
+  </button>
+</div>
       ) : (
         <div style={styles.grid}>
           {filtered.map(p => {
