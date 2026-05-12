@@ -12,7 +12,7 @@
 //       AR: { ...legalAR, ...siteFooterAR, ...homeAR, /* rest */ }
 //
 //  Arabic translations: marketing/UI strings translated to Modern Standard
-//  Arabic. Legal terminology in policy pages still uses [AR] placeholders
+//  Arabic. Legal terminology in policy pages still uses  placeholders
 //  pending professional translator review.
 // ────────────────────────────────────────────────────────────────────────
 
