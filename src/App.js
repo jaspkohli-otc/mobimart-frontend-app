@@ -161,6 +161,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
           ))}
         </div>
       )}
+      {filtered.length === 0 && (
       <div style={{
   textAlign: 'center',
   padding: '80px 24px',
@@ -186,6 +187,7 @@ function Products({ t = (k) => k, language = 'EN' }) {
     {t('clearFilters')}
   </button>
 </div>
+)}
        
         <div style={styles.grid}>
           {filtered.map(p => {
@@ -197,14 +199,66 @@ function Products({ t = (k) => k, language = 'EN' }) {
                 onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.13)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)' }}>
                 {/* Image */}
-                <div style={{height:180, background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:64, overflow:'hidden', position:'relative'}}>
-                  {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : '📱'}
+                <div style={{height:220,  padding:16, background:'linear-gradient(180deg,#f8fafc,#eef2f7)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:64, overflow:'hidden', position:'relative'}}>
+                  {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} /> : '📱'}
                   <span style={{position:'absolute', top:10, left:10, padding:'3px 8px', borderRadius:6, fontSize:11, fontWeight:700, background: cond.bg, color: cond.color}}>{cond.text}</span>
                 </div>
                 {/* Body */}
                 <div style={{padding:'14px 16px'}}>
                   <p style={{fontSize:11, color:'#aaa', marginBottom:4, textTransform:'uppercase', letterSpacing:0.5}}>{p.vendor?.storeName} · {p.category?.name}</p>
                   <h3 style={{fontSize:15, fontWeight:700, color:'#0f1923', marginBottom:8, lineHeight:1.4, minHeight:40}}>{p.name}</h3>
+                  <div style={{fontSize:12,color:'#666',marginBottom:10,lineHeight:1.6}}>
+</div>
+
+<div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+  {p.codEligible && (
+    <span style={{background:'#dbeafe',color:'#1d4ed8',padding:'4px 8px',borderRadius:20,fontSize:11,fontWeight:700}}>
+    </span>
+  )}
+
+  {p.freeDeliveryEligible && (
+    <span style={{background:'#dcfce7',color:'#166534',padding:'4px 8px',borderRadius:20,fontSize:11,fontWeight:700}}>
+      Free Delivery
+    </span>
+  )}
+</div>
+                  
+  {p.brand && <div><strong>Brand:</strong> {p.brand}</div>}
+  {p.model && <div><strong>Model:</strong> {p.model}</div>}
+  {p.warranty && <div><strong>Warranty:</strong> {p.warranty}</div>}
+</div>
+
+<div style={{
+  display:'flex',
+  gap:6,
+  flexWrap:'wrap',
+  marginBottom:10
+}}>
+  {p.codEligible && (
+    <span style={{
+      background:'#dbeafe',
+      color:'#1d4ed8',
+      padding:'4px 8px',
+      borderRadius:20,
+      fontSize:11,
+      fontWeight:700
+    }}>
+      COD
+    </span>
+  )}
+
+  {p.freeDeliveryEligible && (
+    <span style={{
+      background:'#dcfce7',
+      color:'#166534',
+      padding:'4px 8px',
+      borderRadius:20,
+      fontSize:11,
+      fontWeight:700
+    }}>
+    </span>
+  )}
+</div>
                   {/* Stars */}
                   <div style={{display:'flex', alignItems:'center', gap:4, marginBottom:10}}>
                     {[1,2,3,4,5].map(s => (
@@ -213,12 +267,51 @@ function Products({ t = (k) => k, language = 'EN' }) {
                     {p.reviewCount > 0 && <span style={{fontSize:11, color:'#aaa', marginLeft:2}}>({p.reviewCount})</span>}
                   </div>
                   {/* Price */}
-                  <p style={{fontSize:20, fontWeight:800, color:'#f97316', marginBottom:12}}>{formatQAR(p.price)}</p>
+                  <div style={{marginBottom:12}}>
+  {p.compareAtPrice && p.compareAtPrice > p.price && (
+    <div style={{
+      fontSize:13,
+      color:'#888',
+      textDecoration:'line-through',
+      marginBottom:4
+    }}>
+      {formatQAR(p.compareAtPrice)}
+    </div>
+  )}
+
+  <div style={{
+    display:'flex',
+    alignItems:'center',
+    gap:8
+  }}>
+    <p style={{
+      fontSize:20,
+      fontWeight:800,
+      color:'#f97316',
+      margin:0
+    }}>
+      {formatQAR(p.price)}
+    </p>
+
+    {p.compareAtPrice && p.compareAtPrice > p.price && (
+      <span style={{
+        background:'#dcfce7',
+        color:'#166534',
+        padding:'2px 8px',
+        borderRadius:20,
+        fontSize:11,
+        fontWeight:700
+      }}>
+        {Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}% OFF
+      </span>
+    )}
+  </div>
+</div>
                   <Link to={`/products/${p.id}`} style={{display:'block', textAlign:'center', background:'#0f1923', color:'#fff', padding:'10px 16px', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:600, letterSpacing:0.3}}>
                     {t('viewDetails')}
                   </Link>
                 </div>
-              </div>
+              
               )
             })}
         </div>
@@ -238,7 +331,9 @@ function Login({ onLogin, t = (k) => k }) {
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
       window.location.href = '/'
-    } catch { setError(t('invalidCredentials')) }
+    } catch (err) {
+  setError(err.response?.data?.error || t('invalidCredentials'))
+}
   }
 
   return (
@@ -658,7 +753,7 @@ function ProductDetail({ user, t = (k) => k }) {
         <div>
           <div style={{width:'100%', aspectRatio:'1', background:'#f8f9fa', borderRadius:12, border:'1px solid #eee', display:'flex', alignItems:'center', justifyContent:'center', fontSize:100, overflow:'hidden', marginBottom:12}}>
             {getImgSrc(images[selectedImg])
-              ? <img src={getImgSrc(images[selectedImg])} alt={product.name} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+              ? <img src={getImgSrc(images[selectedImg])} alt={product.name} style={{width:'100%',height:'100%',objectFit:'contain'}} />
               : '📱'}
           </div>
           {images.length > 1 && (
@@ -666,7 +761,7 @@ function ProductDetail({ user, t = (k) => k }) {
               {images.map((img, i) => (
                 <div key={i} onClick={() => setSelectedImg(i)}
                   style={{width:60, height:60, borderRadius:8, border: selectedImg === i ? '2px solid #f97316' : '1px solid #eee', background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, overflow:'hidden', cursor:'pointer'}}>
-                  {getImgSrc(img) ? <img src={getImgSrc(img)} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : '📱'}
+                  {getImgSrc(img) ? <img src={getImgSrc(img)} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} /> : '📱'}
                 </div>
               ))}
             </div>
@@ -1061,6 +1156,15 @@ function AdminDashboard({ t = (k) => k }) {
     } catch (err) { console.error('Admin load error:', err) }
     setLoading(false)
   }
+  const updateUserStatus = async (userId, status) => {
+  try {
+    await orders.updateUserStatus(userId, status)
+    loadData()
+  } catch (err) {
+    alert(err.response?.data?.error || 'Failed to update user status')
+  }
+}
+
 
   useEffect(() => { loadData() }, []) // eslint-disable-line
 
@@ -1097,15 +1201,11 @@ function AdminDashboard({ t = (k) => k }) {
 const handleVendorApproval = async (vendorId, status, note = '') => {
   setApprovingId(vendorId)
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`https://mobimart-backend-production.up.railway.app/api/vendors/admin/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ vendorId, status, note })
-    })
-    if (!res.ok) throw new Error('Failed')
+    await vendors.updateStatus({ vendorId, status, note })
     await loadData()
-  } catch (err) { alert('Failed to update vendor status') }
+  } catch (err) {
+    alert(err.response?.data?.error || 'Failed to update vendor status')
+  }
   setApprovingId(null)
 }
 
@@ -1154,7 +1254,6 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
             {[
               { label: t('totalOrders'), value: stats.totalOrders, icon:'📦', color:'#f97316' },
               { label: t('totalRevenue'), value: formatQAR(stats.totalRevenue || 0), icon:'💰', color:'#10b981' },
-              { label: t('platformFees'), value: formatQAR(stats.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
               { label: t('totalUsers'), value: stats.totalUsers, icon:'👥', color:'#3b82f6' },
               { label: t('totalVendors'), value: stats.totalVendors, icon:'🏪', color:'#8b5cf6' },
               { label: t('activeProducts'), value: stats.totalProducts, icon:'📱', color:'#f43f5e' },
@@ -1220,7 +1319,67 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
                   <p style={{fontWeight:600}}>{u.name}</p>
                   <p style={{color:'#666', fontSize:13}}>{u.email}</p>
                 </div>
-                <span style={{background: roleColor[u.role] + '20', color: roleColor[u.role], padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:600}}>{u.role}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+  <span style={{
+    background: roleColor[u.role] + '20',
+    color: roleColor[u.role],
+    padding:'4px 10px',
+    borderRadius:20,
+    fontSize:12,
+    fontWeight:600
+  }}>
+    {u.role}
+  </span>
+
+  <span style={{
+    background:
+      u.approvalStatus === 'ACTIVE'
+        ? '#dcfce7'
+        : u.approvalStatus === 'BLOCKED'
+        ? '#fee2e2'
+        : '#fef3c7',
+    color:
+      u.approvalStatus === 'ACTIVE'
+        ? '#166534'
+        : u.approvalStatus === 'BLOCKED'
+        ? '#991b1b'
+        : '#92400e',
+    padding:'4px 10px',
+    borderRadius:20,
+    fontSize:12,
+    fontWeight:600
+  }}>
+    {u.approvalStatus}
+  </span>
+
+  <button
+    onClick={() => updateUserStatus(u.id, 'ACTIVE')}
+    style={{
+      background:'#16a34a',
+      color:'#fff',
+      border:'none',
+      padding:'6px 10px',
+      borderRadius:8,
+      cursor:'pointer'
+    }}
+  >
+    Approve
+  </button>
+
+  <button
+    onClick={() => updateUserStatus(u.id, 'BLOCKED')}
+    style={{
+      background:'#dc2626',
+      color:'#fff',
+      border:'none',
+      padding:'6px 10px',
+      borderRadius:8,
+      cursor:'pointer'
+    }}
+  >
+    Block
+  </button>
+</div>
               </div>
             ))}
           </div>
@@ -1236,6 +1395,31 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
                 <p style={{fontWeight:700, fontSize:16, marginBottom:4}}>🏪 {vendor.storeName}</p>
                 <p style={{color:'#666', fontSize:13}}>{vendor.user?.name}</p>
                 <p style={{color:'#aaa', fontSize:12}}>{vendor.user?.email}</p>
+                <div style={{ display:'flex', gap:8, marginTop:10, marginBottom:10 }}>
+  <span style={{
+    background: vendor.subscriptionStatus === 'ACTIVE' ? '#dcfce7' : '#fef3c7',
+    color: vendor.subscriptionStatus === 'ACTIVE' ? '#166534' : '#92400e',
+    padding:'4px 10px',
+    borderRadius:20,
+    fontSize:12,
+    fontWeight:600
+  }}>
+    {vendor.subscriptionStatus || 'PENDING'}
+  </span>
+
+  {vendor.subscriptionPlan && (
+    <span style={{
+      background:'#e0f2fe',
+      color:'#075985',
+      padding:'4px 10px',
+      borderRadius:20,
+      fontSize:12,
+      fontWeight:600
+    }}>
+      {vendor.subscriptionPlan}
+    </span>
+  )}
+</div>
                 <div style={{display:'flex', gap:16, marginTop:12}}>
                   <div style={{textAlign:'center'}}>
                     <p style={{fontWeight:700, color:'#f97316'}}>{vendor._count?.products || 0}</p>
@@ -1244,6 +1428,46 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
                   <div style={{textAlign:'center'}}>
                     <p style={{fontWeight:700, color:'#3b82f6'}}>{vendor._count?.orderItems || 0}</p>
                     <p style={{color:'#666', fontSize:12}}>{t('orders')}</p>
+                    <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+  <button
+    onClick={async () => {
+      await vendors.updateSubscription(vendor.id, {
+        subscriptionStatus: 'ACTIVE',
+        subscriptionPlan: 'PRO'
+      })
+      loadData()
+    }}
+    style={{
+      background: '#16a34a',
+      color: '#fff',
+      border: 'none',
+      padding: '8px 14px',
+      borderRadius: 8,
+      cursor: 'pointer'
+    }}
+  >
+    Activate Subscription
+  </button>
+
+  <button
+    onClick={async () => {
+      await vendors.updateSubscription(vendor.id, {
+        subscriptionStatus: 'EXPIRED'
+      })
+      loadData()
+    }}
+    style={{
+      background: '#dc2626',
+      color: '#fff',
+      border: 'none',
+      padding: '8px 14px',
+      borderRadius: 8,
+      cursor: 'pointer'
+    }}
+  >
+    Expire
+  </button>
+</div>
                   </div>
                 </div>
               </div>
@@ -1485,15 +1709,52 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
                           <p style={{fontWeight:700, color:'#1e3a5f', fontSize:14}}>{formatQAR(vendor.totalSales)}</p>
                           <p style={{color:'#666', fontSize:11}}>{t('totalSales')}</p>
                         </div>
-                        <div style={{textAlign:'center', background:'#fff7ed', padding:'8px 12px', borderRadius:8}}>
-                          <p style={{fontWeight:700, color:'#f97316', fontSize:14}}>{formatQAR(vendor.totalPlatformFee)}</p>
-                          <p style={{color:'#666', fontSize:11}}>{t('platformFee')}</p>
-                        </div>
+                        
                         <div style={{textAlign:'center', background:'#d1fae5', padding:'8px 12px', borderRadius:8}}>
                           <p style={{fontWeight:700, color:'#065f46', fontSize:14}}>{formatQAR(vendor.totalEarnings)}</p>
                           <p style={{color:'#666', fontSize:11}}>{t('vendorEarning')}</p>
                         </div>
                       </div>
+                      <div style={{display:'flex', gap:12, marginBottom:12, flexWrap:'wrap'}}>
+  {[
+    {
+      title: 'Platform Enrollment Fee',
+      amount: 'QAR 1,000',
+      status: vendor.enrollmentPaid ? 'Paid' : 'Pending',
+      paid: vendor.enrollmentPaid
+    },
+    {
+      title: 'Monthly Fee',
+      amount: 'QAR 250',
+      status: vendor.monthlyFeePaid ? 'Paid' : 'Pending',
+      paid: vendor.monthlyFeePaid
+    },
+    {
+      title: 'Annual Renewal Fee',
+      amount: 'QAR 500',
+      status: vendor.annualRenewalPaid ? 'Paid' : 'Pending',
+      paid: vendor.annualRenewalPaid
+    }
+  ].map((fee, i) => (
+    <div key={i} style={{
+      minWidth:150,
+      background: fee.paid ? '#dcfce7' : '#fff7ed',
+      border:'1px solid #eee',
+      borderRadius:10,
+      padding:'10px 12px'
+    }}>
+      <p style={{fontSize:12, color:'#666', marginBottom:4}}>{fee.title}</p>
+      <p style={{fontSize:15, fontWeight:800, color:'#0f1923', marginBottom:4}}>{fee.amount}</p>
+      <span style={{
+        fontSize:11,
+        fontWeight:700,
+        color: fee.paid ? '#16a34a' : '#f97316'
+      }}>
+        {fee.status}
+      </span>
+    </div>
+  ))}
+</div>
                       <div style={{display:'flex', alignItems:'center', gap:12, justifyContent:'flex-end'}}>
                         <div>
                           <p style={{fontSize:13, color:'#666'}}>{t('paid')}: {formatQAR(vendor.totalPaid)}</p>
@@ -1769,14 +2030,48 @@ const loadDocs = () => {
                 return (
                   <div key={p.id} style={{border:'1px solid #eee', borderRadius:12, overflow:'hidden', background:'#fff'}}>
                     <div style={{height:140, background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:48, overflow:'hidden'}}>
-                      {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : '📱'}
+                      {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} /> : '📱'}
                     </div>
                     <div style={{padding:16}}>
                       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
                         <h3 style={{fontSize:15, fontWeight:600}}>{p.name}</h3>
                         <span style={{padding:'2px 8px', borderRadius:4, fontSize:11, fontWeight:600, background: cond.bg, color: cond.color}}>{cond.text}</span>
                       </div>
-                      <p style={{color:'#f97316', fontWeight:700, marginBottom:4}}>{formatQAR(p.price)}</p>
+                      <div style={{marginBottom:12}}>
+  {p.compareAtPrice && p.compareAtPrice > p.price && (
+    <div style={{
+      fontSize:13,
+      color:'#888',
+      textDecoration:'line-through',
+      marginBottom:4
+    }}>
+      {formatQAR(p.compareAtPrice)}
+    </div>
+  )}
+
+  <div style={{display:'flex',alignItems:'center',gap:8}}>
+    <p style={{
+      color:'#f97316',
+      fontWeight:700,
+      margin:0
+    }}>
+      {formatQAR(p.price)}
+    </p>
+
+    {p.compareAtPrice && p.compareAtPrice > p.price && (
+      <span style={{
+        background:'#dcfce7',
+        color:'#166534',
+        padding:'2px 8px',
+        borderRadius:20,
+        fontSize:11,
+        fontWeight:700
+      }}>
+        {Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}% OFF
+      </span>
+    )}
+  </div>
+</div>
                       <p style={{color:'#666', fontSize:13, marginBottom:12}}>{t('stock')}: {p.stockQty}</p>
                       <div style={{display:'flex', gap:8}}>
                         <button onClick={() => handleEdit(p)} style={{flex:1, padding:'8px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>{t('edit')}</button>
