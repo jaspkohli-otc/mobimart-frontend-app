@@ -9,6 +9,9 @@ import Privacy from './pages/Privacy'
 import RefundPolicy from './pages/RefundPolicy'
 import Shipping from './pages/Shipping'
 import Contact from './pages/Contact'
+import CookiePolicy from './pages/CookiePolicy'
+import VendorPolicy from './pages/VendorPolicy'
+import AccountDeletionPolicy from './pages/AccountDeletionPolicy'
 import SiteFooter from './components/SiteFooter'
 import ScrollToTop from './components/ScrollToTop'
 const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
@@ -1221,6 +1224,8 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
       setTimeout(() => setSubMsg(''), 3000)
       await loadData()
     } catch (err) { alert('Failed to add subscription') }
+    
+ 
   }
 
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
@@ -1719,21 +1724,24 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
   {[
     {
       title: 'Platform Enrollment Fee',
-      amount: 'QAR 1,000',
+      amount: `QAR ${1000 - (1000 * (vendor.subscriptionDiscountPercent || 0) / 100)}`,
       status: vendor.enrollmentPaid ? 'Paid' : 'Pending',
-      paid: vendor.enrollmentPaid
+      paid: vendor.enrollmentPaid,
+      update: { enrollmentPaid: true }
     },
     {
       title: 'Monthly Fee',
-      amount: 'QAR 250',
+      amount: `QAR ${250 - (250 * (vendor.subscriptionDiscountPercent || 0) / 100)}`,
       status: vendor.monthlyFeePaid ? 'Paid' : 'Pending',
-      paid: vendor.monthlyFeePaid
+      paid: vendor.monthlyFeePaid,
+      update: { monthlyFeePaid: true }
     },
     {
       title: 'Annual Renewal Fee',
-      amount: 'QAR 500',
+      amount: `QAR ${500 - (500 * (vendor.subscriptionDiscountPercent || 0) / 100)}`,
       status: vendor.annualRenewalPaid ? 'Paid' : 'Pending',
-      paid: vendor.annualRenewalPaid
+      paid: vendor.annualRenewalPaid,
+      update: { annualRenewalPaid: true }
     }
   ].map((fee, i) => (
     <div key={i} style={{
@@ -1752,6 +1760,48 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
       }}>
         {fee.status}
       </span>
+      {!fee.paid && (
+        <div>
+          <div style={{ marginTop:8 }}>
+            <select
+              defaultValue={vendor.subscriptionDiscountPercent || 0}
+              onChange={(e) => {
+                vendor.subscriptionDiscountPercent = parseInt(e.target.value)
+              }}
+              style={{ padding:'6px', borderRadius:6, border:'1px solid #ddd', marginRight:6, fontSize:12 }}
+            >
+              <option value={0}>No Discount</option>
+              <option value={10}>10% Discount</option>
+              <option value={20}>20% Discount</option>
+              <option value={30}>30% Discount</option>
+              <option value={40}>40% Discount</option>
+              <option value={50}>50% Discount</option>
+            </select>
+            <input
+              placeholder="Reason"
+              defaultValue={vendor.subscriptionDiscountReason || ''}
+              onChange={(e) => {
+                vendor.subscriptionDiscountReason = e.target.value
+              }}
+              style={{ padding:'6px', borderRadius:6, border:'1px solid #ddd', fontSize:12, width:120 }}
+            />
+          </div>
+          <button
+            onClick={() =>
+              vendors.updateFees(vendor.id, {
+                ...fee.update,
+                subscriptionDiscountPercent: vendor.subscriptionDiscountPercent || 0,
+                subscriptionDiscountReason: vendor.subscriptionDiscountReason || ''
+              })
+              .then(() => loadData())
+              .catch(err => alert(err.response?.data?.error || 'Failed'))
+            }
+            style={{ marginTop:8, padding:'6px 10px', border:'none', borderRadius:8, background:'#10b981', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' }}
+          >
+            Mark Paid
+          </button>
+        </div>
+      )}
     </div>
   ))}
 </div>
@@ -1986,6 +2036,19 @@ const loadDocs = () => {
 
   return (
     <div style={styles.page}>
+      {store && store.monthlyFeePaid === false && (
+  <div style={{
+    background:'#fff7ed',
+    border:'1px solid #fdba74',
+    color:'#9a3412',
+    padding:'16px 20px',
+    borderRadius:12,
+    marginBottom:24,
+    fontWeight:600
+  }}>
+    ⚠️ Monthly vendor fee of QAR 250 is pending. Please pay before the 1st of next month to avoid store interruption.
+  </div>
+)}
       <div style={{background:'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)', borderRadius:16, padding:32, marginBottom:32, color:'#fff'}}>
         <h2 style={{fontSize:28, marginBottom:8}}>🏪 {store.storeName}</h2>
         <p style={{color:'#94a3b8'}}>{store.description}</p>
@@ -2238,11 +2301,50 @@ const loadDocs = () => {
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:16, marginBottom:32}}>
                 {[
                   { label: t('totalSales'), value: formatQAR(earnings.summary?.totalSales || 0), icon:'🛒', color:'#1e3a5f' },
-                  { label: t('platformFee'), value: formatQAR(earnings.summary?.totalPlatformFee || 0), icon:'🏦', color:'#f97316' },
-                  { label: t('yourEarnings'), value: formatQAR(earnings.summary?.totalEarnings || 0), icon:'💰', color:'#10b981' },
-                  { label: t('totalPaid'), value: formatQAR(earnings.summary?.totalPaid || 0), icon:'✅', color:'#3b82f6' },
-                  { label: t('pendingPayout'), value: formatQAR(earnings.summary?.pendingPayout || 0), icon:'⏳', color:'#ef4444' },
-                ].map(stat => (
+
+{
+    label:'Platform Subscription',
+    value: store.enrollmentPaid ? 'Paid' : 'Unpaid',
+    icon:'🏦',
+    color: store.enrollmentPaid ? '#10b981' : '#ef4444'
+  },
+
+  {
+    label:'Present Monthly Fee',
+    value: store.monthlyFeePaid ? 'Paid' : 'Unpaid',
+    icon:'📅',
+    color: store.monthlyFeePaid ? '#10b981' : '#ef4444'
+  },
+
+  {
+    label:'AMC Renewal Fee',
+    value: store.annualRenewalPaid ? 'Paid' : 'Not Due',
+    icon:'🔁',
+    color: store.annualRenewalPaid ? '#10b981' : '#f97316'
+  },
+
+  {
+    label: t('yourEarnings'),
+    value: formatQAR(earnings.summary?.totalEarnings || 0),
+    icon:'💰',
+    color:'#10b981'
+  },
+
+  {
+    label: t('totalPaid'),
+    value: formatQAR(earnings.summary?.totalPaid || 0),
+    icon:'✅',
+    color:'#3b82f6'
+  },
+
+  {
+    label: t('pendingPayout'),
+    value: formatQAR(earnings.summary?.pendingPayout || 0),
+    icon:'⏳',
+    color:'#ef4444'
+  }
+]
+                .map(stat => (
                   <div key={stat.label} style={{background:'#fff', border:'1px solid #eee', borderRadius:12, padding:20}}>
                     <p style={{fontSize:28, marginBottom:8}}>{stat.icon}</p>
                     <p style={{fontSize:20, fontWeight:700, color: stat.color}}>{stat.value}</p>
@@ -2374,6 +2476,9 @@ function App() {
         <Route path="/refund-policy" element={<RefundPolicy t={t} language={language} />} />
         <Route path="/shipping" element={<Shipping t={t} language={language} />} />
         <Route path="/contact" element={<Contact t={t} language={language} />} />
+        <Route path="/cookie-policy" element={<CookiePolicy language={language} />} />
+        <Route path="/vendor-policy" element={<VendorPolicy language={language} />} />
+        <Route path="/account-deletion" element={<AccountDeletionPolicy language={language} />} />
       </Routes>
       <SiteFooter t={t} language={language} />
     </BrowserRouter>

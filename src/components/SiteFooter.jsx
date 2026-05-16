@@ -45,17 +45,21 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
             <Link to="/refund-policy" style={s.link}>{t('legalFooterRefund')}</Link>
             <Link to="/terms" style={s.link}>{t('legalFooterTerms')}</Link>
             <Link to="/privacy" style={s.link}>{t('legalFooterPrivacy')}</Link>
+            <Link to="/cookie-policy" style={s.link}>{t('cookiePolicy')}</Link>
+            <Link to="/vendor-policy" style={s.link}>{t('vendorPolicy')}</Link>
+            <Link to="/account-deletion" style={s.link}>{t('accountDeletionPolicy')}</Link>
           </div>
 
           {/* Contact */}
           <div style={s.col}>
             <div style={s.colTitle}>{t('siteFooterContactTitle')}</div>
-            <a href="mailto:support@jasprmarket.com" style={s.link}>support@jasprmarket.com</a>
-            <a href="tel:+97466142417" style={s.link}>+974 6614 2417</a>
+            <a href="mailto:support@jasprmarket.com" style={s.link}>{t('siteFooterEmail')}</a>
+            <a href="tel:+97466142417" style={s.link}>{t('siteFooterPhone')}</a>
             <div style={s.smallText}>{t('legalFooterHours')}</div>
             <div style={s.smallText}>
-              Building 220, Street 185, Zone 24<br />
-              Doha, State of Qatar
+              {t('siteFooterAddress').split('\n').map((line, i) => (
+                <span key={i}>{line}{i === 0 && <br />}</span>
+              ))}
             </div>
           </div>
         </div>
@@ -64,11 +68,11 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
         <div style={s.compliance}>
           <div style={s.complianceItem}>
             <span style={s.complianceLabel}>{t('siteFooterOperator')}:</span>{' '}
-            JASPR Trading Contracting and Services
+            {t('siteFooterOperatorName')}
           </div>
           <div style={s.complianceItem}>
             <span style={s.complianceLabel}>{t('siteFooterCR')}:</span>{' '}
-            <strong style={s.complianceValue}>CR-223480</strong>
+            <strong style={s.complianceValue}>{t('siteFooterCRNumber')}</strong>
           </div>
           <div style={s.complianceItem}>
             <span style={s.complianceLabel}>{t('siteFooterLicence')}:</span>{' '}
@@ -78,7 +82,7 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
 
         {/* Bottom strip */}
         <div style={s.bottom}>
-          <span>© 2026 JASPR Trading Contracting and Services. {t('legalFooterRights')}</span>
+          <span>{t('siteFooterCopyright')} {t('legalFooterRights')}</span>
           <span style={s.payments}>
             {t('siteFooterAccepts')}: {t('cashOnDelivery')}
             {/* Once Tap Payments is live: , Visa, Mastercard */}

@@ -1,6 +1,5 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import PolicyFooter from '../components/PolicyFooter'
 
 // Terms & Conditions — JASPR Trading / MobiMart
 function Terms({ t = (k) => k, language = 'EN' }) {
@@ -153,7 +152,6 @@ function Terms({ t = (k) => k, language = 'EN' }) {
           </P>
         </Section>
 
-        <PolicyFooter t={t} />
       </div>
     </div>
   )

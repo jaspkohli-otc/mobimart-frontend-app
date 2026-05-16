@@ -11,14 +11,14 @@ function PolicyFooter({ t = (k) => k }) {
       <div style={s.footerGrid}>
         <div style={s.footerBlock}>
           <strong style={s.footerLabel}>{t('legalFooterOperator')}</strong>
-          JASPR Trading Contracting and Services<br />
-          Building 220, Street 185, Zone 24<br />
-          Doha, State of Qatar
+          {t('legalFooterOperatorName')}<br />
+          {t('legalFooterAddress1')}<br />
+          {t('legalFooterAddress2')}
         </div>
         <div style={s.footerBlock}>
           <strong style={s.footerLabel}>{t('legalFooterCare')}</strong>
-          <a href="mailto:support@jasprmarket.com" style={s.footerLink}>support@jasprmarket.com</a><br />
-          +974 6614 2417<br />
+          <a href="mailto:support@jasprmarket.com" style={s.footerLink}>{t('legalFooterEmail')}</a><br />
+          <a href="tel:+97466142417" style={s.footerLink}>{t('legalFooterPhone')}</a><br />
           {t('legalFooterHours')}
         </div>
         <div style={s.footerBlock}>
@@ -30,8 +30,8 @@ function PolicyFooter({ t = (k) => k }) {
         </div>
       </div>
       <div style={s.footerCR}>
-        {t('legalFooterCRLine1')} <strong>CR-223480</strong> · {t('legalFooterCRLine2')} <em>({t('legalFooterPending')})</em><br />
-        © 2026 JASPR Trading Contracting and Services. {t('legalFooterRights')}
+        {t('legalFooterCRLine1')} <strong>{t('legalFooterCRNumber')}</strong> · {t('legalFooterCRLine2')} <em>({t('legalFooterPending')})</em><br />
+        {t('legalFooterCopyright')} {t('legalFooterRights')}
       </div>
     </footer>
   )

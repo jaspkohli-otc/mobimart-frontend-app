@@ -1,5 +1,4 @@
 import React from 'react'
-import PolicyFooter from '../components/PolicyFooter'
 
 // Refund & Return Policy — JASPR Trading / MobiMart
 function RefundPolicy({ t = (k) => k, language = 'EN' }) {
@@ -159,7 +158,6 @@ function RefundPolicy({ t = (k) => k, language = 'EN' }) {
           </P>
         </Section>
 
-        <PolicyFooter t={t} />
       </div>
     </div>
   )

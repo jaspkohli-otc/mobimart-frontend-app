@@ -65,6 +65,8 @@ export const vendors = {
   updateStatus: (data) => API.post('/vendors/admin/status', data),
   updateSubscription: (vendorId, data) =>
   API.put(`/vendors/admin/subscription/${vendorId}`, data),
+  updateFees: (vendorId, data) =>
+  API.put(`/vendors/admin/fees/${vendorId}`, data),
 }
 
 export const cart = {

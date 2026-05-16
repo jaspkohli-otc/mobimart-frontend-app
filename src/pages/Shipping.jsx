@@ -1,6 +1,5 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import PolicyFooter from '../components/PolicyFooter'
 
 // Shipping & Delivery Policy — JASPR Trading / MobiMart
 function Shipping({ t = (k) => k, language = 'EN' }) {
@@ -159,12 +158,11 @@ function Shipping({ t = (k) => k, language = 'EN' }) {
         <Section num="10" id="contact" title={t('legalShippingContactTitle')}>
           <P>
             {t('legalShippingContactP1')} <a href="mailto:support@jasprmarket.com" style={s.link}>support@jasprmarket.com</a><br />
-            {t('legalShippingContactP2')} <strong>+974 6614 2417</strong><br />
+            {t('legalShippingContactP2')} <strong>{t('legalFooterPhone')}</strong><br />
             {t('legalShippingContactP3')}
           </P>
         </Section>
 
-        <PolicyFooter t={t} />
       </div>
     </div>
   )
