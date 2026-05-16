@@ -1,7 +1,10 @@
 import axios from 'axios'
 
 const API = axios.create({
-  baseURL: 'https://mobimart-backend-production.up.railway.app/api'
+  baseURL:
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000/api'
+    : 'https://mobimart-backend-production.up.railway.app/api'
 })
 
 API.interceptors.request.use((config) => {

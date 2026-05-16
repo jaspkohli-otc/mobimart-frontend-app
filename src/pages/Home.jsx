@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom'
 
 function Home({ t = (k) => k, language = 'EN' }) {
   const isRTL = language === 'AR'
-  const [showBanner, setShowBanner] = useState(true)
+  const [showBanner, setShowBanner] = useState(false)
 
   // Persist banner dismissal across sessions
   useEffect(() => {
