@@ -91,12 +91,8 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
               479121
             </strong>
 
-            <div style={{
-              marginTop: 4,
-              fontSize: 12,
-              color: '#cbd5e1',
-              lineHeight: 1.4,
-            }}>
+            <div style={s.complianceSubText}>
+              
               Digital Platform for Retail Trade Intermediation
             </div>
           </div>
@@ -196,33 +192,45 @@ const s = {
 
   // Compliance bar — the part Hukoomi inspectors will look for
   compliance: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '12px 32px',
-    padding: '16px 0',
-    borderTop: '1px solid rgba(255,255,255,0.1)',
-    borderBottom: '1px solid rgba(255,255,255,0.1)',
-    fontSize: 13,
-    marginBottom: 16,
-  },
-  complianceItem: {
-    color: '#cbd5e1',
-  },
-  complianceLabel: {
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    fontSize: 11,
-    letterSpacing: '0.08em',
-    fontWeight: 600,
-  },
-  complianceValue: {
-    color: '#ffffff',
-    fontFamily: 'monospace',
-  },
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: 24,
+  padding: '28px 0',
+  borderTop: '1px solid rgba(255,255,255,0.1)',
+  borderBottom: '1px solid rgba(255,255,255,0.1)',
+  marginBottom: 20,
+  alignItems: 'start',
+},
+complianceItem: {
+  color: '#cbd5e1',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  paddingRight: 12,
+  minHeight: 72,
+},
+complianceLabel: {
+  color: '#94a3b8',
+  textTransform: 'uppercase',
+  fontSize: 11,
+  letterSpacing: '0.12em',
+  fontWeight: 700,
+},
+complianceValue: {
+  color: '#ffffff',
+  fontSize: 20,
+  fontWeight: 700,
+  lineHeight: 1.2,
+},
   compliancePending: {
     color: '#94a3b8',
     fontStyle: 'italic',
   },
+  complianceSubText: {
+  fontSize: 13,
+  color: '#cbd5e1',
+  lineHeight: 1.5,
+},
 
   // Bottom strip — copyright + payments accepted
   bottom: {
