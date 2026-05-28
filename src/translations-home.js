@@ -18,7 +18,7 @@
 
 const homeEN = {
   // Coming Soon banner
-  homeBannerText: "MobiMart is in soft launch — full features rolling out soon. Welcome!",
+  homeBannerText: "JASPR Market is in soft launch — full features rolling out soon. Welcome!",
 
   // Top utility strip
   homeUtilDelivery: "Same Day Delivery in Doha",
@@ -26,9 +26,9 @@ const homeEN = {
   homeUtilReturns:  "7 Days Easy Returns",
 
   // Hero section
-  homeHeroEyebrow: "Qatar's #1 Mobile Marketplace",
-  homeHeroTitle:   "Qatar's Marketplace for Mobiles, Laptops & Tech Accessories",
-  homeHeroSub:     "New and used phones, laptops, tablets, and accessories from verified sellers across Qatar — delivered fast, backed by real customer support.",
+  homeHeroEyebrow: "Qatar's Smart Marketplace",
+  homeHeroTitle: "Qatar's Marketplace for Everything You Need",
+  homeHeroSub: "Shop electronics, fashion, home essentials, beauty products, groceries and more from trusted sellers across Qatar — fast delivery with real customer support.",
 
   // Trust pills inside hero
   homeTrustVerified: "Verified Sellers",
@@ -38,7 +38,7 @@ const homeEN = {
 
   // Hero CTAs
   homeShopNow:    "Shop Now",
-  homeSellDevice: "Sell Your Device",
+  homeSellDevice: "Start Selling",
 
   // Feature cards (in hero, beside phone)
   homeFeatSameDayTitle: "Same Day Delivery",

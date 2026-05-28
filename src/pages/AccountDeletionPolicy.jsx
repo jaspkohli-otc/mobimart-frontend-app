@@ -31,7 +31,7 @@ const content = {
   "en": {
     "meta": "Privacy & Account Policy",
     "title": "Account Deletion Policy",
-    "lede": "This policy explains how users may request deletion of their MobiMart account and related personal data.",
+    "lede": "This policy explains how users may request deletion of their JASPR Market account and related personal data.",
     "sections": [
       {
         "id": "request",
@@ -44,7 +44,7 @@ const content = {
         "id": "verify",
         "title": "Verification",
         "paragraphs": [
-          "For security reasons, MobiMart may ask the user to verify their identity or account ownership before processing the deletion request."
+          "For security reasons, JASPR Market may ask the user to verify their identity or account ownership before processing the deletion request."
         ]
       },
       {
@@ -68,7 +68,7 @@ const content = {
         "id": "timeline",
         "title": "Processing timeline",
         "paragraphs": [
-          "MobiMart will review and process valid account deletion requests within a reasonable period after verification. Users will be notified once the request has been reviewed or completed."
+          "JASPR Market will review and process valid account deletion requests within a reasonable period after verification. Users will be notified once the request has been reviewed or completed."
         ]
       },
       {

@@ -31,7 +31,7 @@ const content = {
   "en": {
     "meta": "Website & App Policy",
     "title": "Cookie Policy",
-    "lede": "This Cookie Policy explains how MobiMart uses cookies and similar technologies on its website and application.",
+    "lede": "This Cookie Policy explains how JASPR Market uses cookies and similar technologies on its website and application.",
     "sections": [
       {
         "id": "what",
@@ -56,7 +56,7 @@ const content = {
         "id": "third",
         "title": "Third-party cookies",
         "paragraphs": [
-          "MobiMart may use third-party tools such as analytics, advertising, payment, and security providers. These providers may place cookies or similar technologies according to their own policies."
+          "JASPR Market may use third-party tools such as analytics, advertising, payment, and security providers. These providers may place cookies or similar technologies according to their own policies."
         ]
       },
       {
@@ -72,7 +72,7 @@ const content = {
         "id": "law",
         "title": "Qatar law and privacy",
         "paragraphs": [
-          "This policy is intended to be read together with MobiMart’s Privacy Policy and shall be interpreted in accordance with applicable laws and regulations in the State of Qatar."
+          "This policy is intended to be read together with JASPR Market’s Privacy Policy and shall be interpreted in accordance with applicable laws and regulations in the State of Qatar."
         ]
       }
     ]

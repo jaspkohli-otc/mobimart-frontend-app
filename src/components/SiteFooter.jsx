@@ -22,7 +22,7 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
           {/* Brand */}
           <div style={s.col}>
             <div style={s.brand}>
-              Mobi<span style={s.brandAccent}>Mart</span>
+              JASPR <span style={s.brandAccent}>Market</span>
             </div>
             <div style={s.brandTag}>{t('siteFooterTag')}</div>
             <p style={s.brandDesc}>{t('siteFooterDesc')}</p>
@@ -64,19 +64,50 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
           </div>
         </div>
 
-        {/* Compliance bar — REQUIRED for Hukoomi */}
+                {/* Compliance bar — REQUIRED for Hukoomi */}
         <div style={s.compliance}>
           <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>{t('siteFooterOperator')}:</span>{' '}
+            <span style={s.complianceLabel}>
+              {t('siteFooterOperator')}:
+            </span>{' '}
             {t('siteFooterOperatorName')}
           </div>
+
           <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>{t('siteFooterCR')}:</span>{' '}
-            <strong style={s.complianceValue}>{t('siteFooterCRNumber')}</strong>
+            <span style={s.complianceLabel}>
+              {t('siteFooterCR')}:
+            </span>{' '}
+            <strong style={s.complianceValue}>
+              {t('siteFooterCRNumber')}
+            </strong>
           </div>
+
+          {/* NEW MOI ACTIVITY BLOCK */}
           <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>{t('siteFooterLicence')}:</span>{' '}
-            <em style={s.compliancePending}>({t('legalFooterPending')})</em>
+            <span style={s.complianceLabel}>
+              MOI CR ACTIVITY:
+            </span>{' '}
+            <strong style={s.complianceValue}>
+              479121
+            </strong>
+
+            <div style={{
+              marginTop: 4,
+              fontSize: 12,
+              color: '#cbd5e1',
+              lineHeight: 1.4,
+            }}>
+              Digital Platform for Retail Trade Intermediation
+            </div>
+          </div>
+
+          <div style={s.complianceItem}>
+            <span style={s.complianceLabel}>
+              {t('siteFooterLicence')}:
+            </span>{' '}
+            <em style={s.compliancePending}>
+              ({t('legalFooterPending')})
+            </em>
           </div>
         </div>
 
@@ -93,7 +124,7 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
   )
 }
 
-// ──────────────── Inline styles (matches MobiMart dark navbar palette) ────────────────
+// ──────────────── Inline styles (matches JASPR Market dark navbar palette) ────────────────
 
 const s = {
   footer: {

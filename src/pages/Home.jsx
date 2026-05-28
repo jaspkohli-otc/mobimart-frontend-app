@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
+
 // ────────────────────────────────────────────────────────────────────────
-//  Home — MobiMart landing page (v26 redesign, May 2026)
+//  Home — JASPR Market landing page (v26 redesign, May 2026)
 //
 //  Soft-launch homepage for jasprmarket.com.
 //  - Top: dismissible "Coming Soon" banner
@@ -32,17 +33,56 @@ function Home({ t = (k) => k, language = 'EN' }) {
 
 
 
-  // Categories — Lucide-style SVG icons inline (no external dep)
+  // Categories — 7 parent buckets matching the DB category tree.
+  // `comingSoon: true` shows an overlay on the card and keeps it disabled
+  // until we add products to that bucket.
   const categories = [
-    { id: 'mobile-phones',   label: t('homeCatMobiles'),    icon: IconPhone,     to: '/products?category=Mobile Phones' },
-    { id: 'laptops',         label: t('homeCatLaptops'),    icon: IconLaptop,    to: '/products?category=Laptops' },
-    { id: 'accessories',     label: t('homeCatAccessories'),icon: IconEarbuds,   to: '/products?category=Accessories' },
-    { id: 'tablets',         label: t('homeCatTablets'),    icon: IconTablet,    to: '/products?category=Tablets' },
-    { id: 'smart-watches',   label: t('homeCatWatches'),    icon: IconWatch,     to: '/products?category=Smart Watches' },
-    { id: 'chargers',        label: t('homeCatChargers'),   icon: IconCharger,   to: '/products?category=Chargers' },
-    { id: 'cases',           label: t('homeCatCases'),      icon: IconCase,      to: '/products?category=Cases' },
-    { id: 'headphones',      label: t('homeCatHeadphones'), icon: IconHeadphones,to: '/products?category=Headphones' },
-  ]
+  {
+    id: 'mobiles',
+    label: t('mobiles'),
+    icon: IconPhone,
+    to: '/products?category=Mobiles'
+  },
+  {
+    id: 'computers',
+    label: t('computers'),
+    icon: IconLaptop,
+    to: '/products?category=Computers'
+  },
+  {
+    id: 'audio',
+    label: t('audio'),
+    icon: IconHeadphones,
+    to: '/products?category=Audio'
+  },
+  {
+    id: 'wearables',
+    label: t('wearables'),
+    icon: IconWatch,
+    to: '/products?category=Wearables'
+  },
+  {
+    id: 'fashion',
+    label: t('fashion'),
+    icon: IconShirt,
+    to: '/products?category=Fashion',
+    comingSoon: true
+  },
+  {
+    id: 'beauty',
+    label: t('beauty'),
+    icon: IconSparkles,
+    to: '/products?category=Beauty',
+    comingSoon: true
+  },
+  {
+    id: 'home',
+    label: t('homeKitchen'),
+    icon: IconHome,
+    to: '/products?category=Home%20%26%20Kitchen',
+    comingSoon: true
+  }
+]
 
   return (
     <div style={s.page} dir={isRTL ? 'rtl' : 'ltr'}>
@@ -146,12 +186,39 @@ function Home({ t = (k) => k, language = 'EN' }) {
         <div style={s.catGrid}>
           {categories.map(cat => {
             const Icon = cat.icon
+            const cardStyle = cat.comingSoon
+              ? {...s.catCard, position:'relative', opacity:0.7, pointerEvents:'none'}
+              : {...s.catCard, position:'relative'}
             return (
-              <Link to={cat.to} key={cat.id} style={s.catCard}>
+              <Link
+                to={cat.comingSoon ? '#' : cat.to}
+                key={cat.id}
+                style={cardStyle}
+                onClick={cat.comingSoon ? (e) => e.preventDefault() : undefined}
+                aria-disabled={cat.comingSoon ? 'true' : undefined}
+              >
                 <div style={s.catIconWrap}>
                   <Icon />
                 </div>
                 <div style={s.catLabel}>{cat.label}</div>
+                {cat.comingSoon && (
+                  <span style={{
+                    position:'absolute',
+                    top:8,
+                    right:8,
+                    background:'#f97316',
+                    color:'#fff',
+                    fontSize:9,
+                    fontWeight:700,
+                    padding:'3px 7px',
+                    borderRadius:10,
+                    letterSpacing:0.4,
+                    textTransform:'uppercase',
+                    boxShadow:'0 2px 6px rgba(249,115,22,0.35)'
+                  }}>
+                    {t('comingSoon')}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -259,6 +326,49 @@ const IconReturn = () => (
 const IconTruck = () => (
   <svg {...svgProps}><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
 )
+const IconMonitor = () => (
+  <svg {...svgProps}>
+    <rect x="2" y="4" width="20" height="14" rx="2" />
+    <line x1="8" y1="20" x2="16" y2="20" />
+    <line x1="12" y1="18" x2="12" y2="20" />
+  </svg>
+)
+
+const IconShirt = () => (
+  <svg {...svgProps}>
+    <path d="M8 4l4 2 4-2 4 4-3 3v9H7v-9L4 8l4-4z" />
+  </svg>
+)
+
+const IconSparkles = () => (
+  <svg {...svgProps}>
+    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+  </svg>
+)
+
+const IconHome = () => (
+  <svg {...svgProps}>
+    <path d="M4 10l8-6 8 6v10H4V10z" />
+  </svg>
+)
+
+const IconShoppingCart = () => (
+  <svg {...svgProps}>
+    <circle cx="9" cy="20" r="1" />
+    <circle cx="17" cy="20" r="1" />
+    <path d="M5 5h2l2 10h8l2-6H8" />
+  </svg>
+)
+
+const IconTrophy = () => (
+  <svg {...svgProps}>
+    <path d="M8 4h8v4a4 4 0 01-8 0V4z" />
+    <path d="M6 4H4v2a4 4 0 004 4" />
+    <path d="M18 4h2v2a4 4 0 01-4 4" />
+    <line x1="12" y1="12" x2="12" y2="18" />
+    <line x1="9" y1="20" x2="15" y2="20" />
+  </svg>
+)
 
 // Hero phone showcase — graphic stand-in until real photo
 const PhoneSVG = () => (
@@ -291,8 +401,8 @@ const PhoneSVG = () => (
     <rect x="125" y="50" width="30" height="6" rx="3" fill="#0f172a" />
     {/* Screen highlight */}
     <rect x="84" y="62" width="40" height="100" rx="10" fill="#ffffff" opacity="0.12" />
-    {/* MobiMart watermark on screen */}
-    <text x="140" y="200" textAnchor="middle" fontFamily="Inter Tight, system-ui" fontSize="16" fontWeight="700" fill="#fff" opacity="0.9">Mobi<tspan fill="#f97316">Mart</tspan></text>
+    {/* JASPR Market watermark on screen */}
+    <text x="140" y="200" textAnchor="middle" fontFamily="Inter Tight, system-ui" fontSize="16" fontWeight="700" fill="#fff" opacity="0.9">JASPR</text>
   </svg>
 )
 

@@ -31,13 +31,13 @@ const content = {
   "en": {
     "meta": "Customer Policy",
     "title": "Delivery Policy",
-    "lede": "This policy explains MobiMart delivery coverage, delivery charges, vendor obligations, and failed delivery handling.",
+    "lede": "This policy explains JASPR Market delivery coverage, delivery charges, vendor obligations, and failed delivery handling.",
     "sections": [
       {
         "id": "coverage",
         "title": "Delivery coverage",
         "paragraphs": [
-          "MobiMart currently supports same-day delivery within Doha, subject to vendor readiness, product availability, operational cut-off times, courier capacity, and customer location."
+          "JASPR Market currently supports same-day delivery within Doha, subject to vendor readiness, product availability, operational cut-off times, courier capacity, and customer location."
         ]
       },
       {
@@ -67,7 +67,7 @@ const content = {
         "id": "delays",
         "title": "Delivery delays",
         "paragraphs": [
-          "MobiMart is not responsible for delays caused by weather, traffic, government restrictions, vendor delay, payment verification, force majeure, or circumstances outside reasonable control."
+          "JASPR Market is not responsible for delays caused by weather, traffic, government restrictions, vendor delay, payment verification, force majeure, or circumstances outside reasonable control."
         ]
       },
       {

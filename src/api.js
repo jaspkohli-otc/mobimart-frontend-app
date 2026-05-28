@@ -1,10 +1,7 @@
 import axios from 'axios'
 
 const API = axios.create({
-  baseURL:
-  window.location.hostname === 'localhost'
-    ? 'http://localhost:3000/api'
-    : 'https://mobimart-backend-production.up.railway.app/api'
+  baseURL: 'http://localhost:3000/api'
 })
 
 API.interceptors.request.use((config) => {
@@ -83,6 +80,7 @@ export const orders = {
   place: (data) => API.post('/orders', data),
   getAll: () => API.get('/orders'),
   getOne: (id) => API.get(`/orders/${id}`),
+  vendorOrders: () => API.get('/orders/vendor-orders'),
   updateStatus: (id, status) => API.put(`/orders/${id}/status`, { status }),
   adminGetAll: () => API.get('/orders/admin/all-orders'),
   adminGetStats: () => API.get('/orders/admin/stats'),
@@ -90,6 +88,12 @@ export const orders = {
   adminGetVendors: () => API.get('/orders/admin/vendors'),
   updateUserStatus: (id, approvalStatus) =>
     API.put(`/orders/admin/users/${id}/status`, { approvalStatus }),
+}
+
+export const payments = {
+  vendorSubscription: (data) => API.post('/payments/vendor-subscription', data),
+  orderPayment: (data) => API.post('/payments/order', data),
+  verify: (paymentId) => API.post('/payments/verify', { paymentId }),
 }
 
 export default API

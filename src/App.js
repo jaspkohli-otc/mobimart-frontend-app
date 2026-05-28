@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom'
-import { auth, products, cart, orders, vendors } from './api'
+import { BrowserRouter, Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { auth, products, cart, orders, vendors, payments } from './api'
 import './App.css'
 import translations from './translations';
 import Terms from './pages/Terms'
+import { PaymentSuccess, PaymentFailed } from './PaymentPages'
 import Home from './pages/Home'
 import Privacy from './pages/Privacy'
 import RefundPolicy from './pages/RefundPolicy'
@@ -16,19 +17,48 @@ import SiteFooter from './components/SiteFooter'
 import ScrollToTop from './components/ScrollToTop'
 const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
 
-const conditionLabel = (c) => {
-  if (c === 'NEW') return { text: 'New', bg: '#d1fae5', color: '#065f46' }
-  if (c === 'LIKE_NEW') return { text: 'Like New', bg: '#fef9c3', color: '#854d0e' }
-  if (c === 'GOOD') return { text: 'Good', bg: '#fed7aa', color: '#9a3412' }
-  if (c === 'FAIR') return { text: 'Fair', bg: '#fee2e2', color: '#991b1b' }
-  return { text: 'New', bg: '#d1fae5', color: '#065f46' }
+const conditionLabel = (c, lang = 'EN') => {
+  const ar = lang === 'AR'
+  if (c === 'NEW')      return { text: ar ? 'جديد' : 'New',        bg: '#d1fae5', color: '#065f46' }
+  if (c === 'LIKE_NEW') return { text: ar ? 'شبه جديد' : 'Like New', bg: '#fef9c3', color: '#854d0e' }
+  if (c === 'GOOD')     return { text: ar ? 'جيد' : 'Good',        bg: '#fed7aa', color: '#9a3412' }
+  if (c === 'FAIR')     return { text: ar ? 'مقبول' : 'Fair',       bg: '#fee2e2', color: '#991b1b' }
+  return { text: ar ? 'جديد' : 'New', bg: '#d1fae5', color: '#065f46' }
 }
 
-function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
+// Map DB category names (English) to Arabic display labels. Falls back to the
+// original name if no translation exists — so unknown categories still show.
+const CATEGORY_AR = {
+  'mobiles': 'الجوالات',
+  'smartphones': 'الهواتف الذكية',
+  'mobile covers': 'أغطية الجوال',
+  'accessories': 'الإكسسوارات',
+  'tablets': 'الأجهزة اللوحية',
+  'computers': 'أجهزة الكمبيوتر',
+  'laptops': 'لابتوب',
+  'keyboard': 'لوحات المفاتيح',
+  'mouse': 'الفأرة',
+  'audio': 'الصوتيات',
+  'headphones': 'سماعات الرأس',
+  'bluetooth headphones': 'سماعات بلوتوث',
+  'wearables': 'الأجهزة القابلة للارتداء',
+  'smart watch': 'ساعة ذكية',
+  'smart watches': 'الساعات الذكية',
+  'fashion': 'الأزياء',
+  'beauty': 'الجمال',
+  'home & kitchen': 'المنزل والمطبخ'
+}
+const catLabel = (name, lang = 'EN') => {
+  if (!name) return ''
+  if (lang === 'AR') return CATEGORY_AR[name.trim().toLowerCase()] || name
+  return name
+}
+
+function Navbar({ user, cartCount, onLogout, language, setLanguage, t, theme = 'light', toggleTheme = () => {}, onCartClick = null }) {
   return (
     <nav style={styles.nav}>
       <Link to="/" style={styles.logo}>
-        Mobi<span style={{color:'#f97316'}}>Mart</span>
+        JASPR <span style={{color:'#f97316'}}>Market</span>
         <span style={{fontSize:11, color:'#94a3b8', fontWeight:400, marginLeft:8}}>by JASPR Trading</span>
       </Link>
       <div style={styles.navLinks}>
@@ -37,7 +67,17 @@ function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
           <>
             {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>{t('admin')}</Link>}
             {user.role === 'VENDOR' && <Link to="/vendor" style={styles.navLink}>{t('myStore')}</Link>}
-            <Link to="/cart" style={styles.navLink}>{t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
+            <Link to="/wishlist" style={styles.navLink}>Wishlist</Link>
+            {onCartClick ? (
+              <button
+                onClick={onCartClick}
+                style={{...styles.navLink, background:'none', border:'none', cursor:'pointer', fontSize:14, padding:0, fontFamily:'inherit'}}
+              >
+                {t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
+              </button>
+            ) : (
+              <Link to="/cart" style={styles.navLink}>{t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
+            )}
             <Link to="/orders" style={styles.navLink}>{t('myOrders')}</Link>
             <button onClick={onLogout} style={styles.logoutBtn}>{t('logout')}</button>
           </>
@@ -47,49 +87,284 @@ function Navbar({ user, cartCount, onLogout, language, setLanguage, t }) {
             <Link to="/register" style={styles.registerBtn}>{t('register')}</Link>
           </>
         )}
+        <button
+          onClick={toggleTheme}
+          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}
+        >
+          {theme === 'light' ? '🌙' : '☀️'}
+        </button>
         <button onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')} style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}>{language === 'EN' ? 'AR' : 'EN'}</button>
       </div>
     </nav>
   )
 }
 
-function Products({ t = (k) => k, language = 'EN' }) {
+function Products({
+  t = (k) => k,
+  language = 'EN',
+  wishlist = [],
+  toggleWishlist = () => {},
+  wishlistOnly = false
+}) {
+  const location = useLocation()
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedCondition, setSelectedCondition] = useState('')
+  const [selectedVendor, setSelectedVendor] = useState('')
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
+  const [toast, setToast] = useState('')
+  const [quickViewProduct, setQuickViewProduct] = useState(null)
+  const [quickQty, setQuickQty] = useState(1)
+  const [showSuggest, setShowSuggest] = useState(false)
+  // Tracks the raw ?category=<name> from the URL so we can pass it to the API
+  // immediately even before the categories list has loaded.
+  const [urlCategoryName, setUrlCategoryName] = useState('')
 
   useEffect(() => {
     products.getCategories().then(r => setCategories(r.data)).catch(() => {})
   }, [])
 
+  // When the URL has ?category=<name>, capture it and try to resolve to an id
+  // once categories are available. This wires the home page links into the
+  // existing filter UI without needing custom backend logic on every load.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const name = params.get('category')
+    setUrlCategoryName(name || '')
+    if (!name) return
+    if (categories.length === 0) return
+    const match = categories.find(c => c.name.toLowerCase() === name.trim().toLowerCase())
+    if (match && match.id !== selectedCategory) {
+      setSelectedCategory(match.id)
+    }
+  }, [location.search, categories]) // eslint-disable-line
+
   useEffect(() => {
     setLoading(true)
     const params = { search }
-    if (selectedCategory) params.categoryId = selectedCategory
-    products.getAll(params).then(r => { setItems(r.data); setLoading(false) })
-  }, [search, selectedCategory])
+    if (selectedCategory) {
+      params.categoryId = selectedCategory
+    } else if (urlCategoryName) {
+      // Category not yet resolved to an id (categories list still loading or
+      // the name is a parent like "Mobiles" that we still want to filter by).
+      params.categoryName = urlCategoryName
+    }
+    products.getAll(params)
+      .then(r => { setItems(r.data); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [search, selectedCategory, urlCategoryName])
 
-  const filtered = items.filter(p => {
-    if (priceRange.min && p.price < parseFloat(priceRange.min)) return false
-    if (priceRange.max && p.price > parseFloat(priceRange.max)) return false
-    if (selectedCondition && p.condition !== selectedCondition) return false
-    return true
-  })
+  const vendorOptions = [...new Set(items.map(p => p.vendor?.storeName).filter(Boolean))]
+
+const filtered = items.filter(p => {
+
+  if (wishlistOnly && !wishlist.includes(p.id)) {
+    return false
+  }
+
+  if (priceRange.min && p.price < parseFloat(priceRange.min)) {
+    return false
+  }
+
+  if (priceRange.max && p.price > parseFloat(priceRange.max)) {
+    return false
+  }
+
+  if (selectedCondition && p.condition !== selectedCondition) {
+    return false
+  }
+
+  if (selectedVendor && p.vendor?.storeName !== selectedVendor) {
+    return false
+  }
+
+  return true
+})
+const showToast = (message) => {
+  setToast(message)
+
+  setTimeout(() => {
+    setToast('')
+  }, 2500)
+}
+const quickViewModal = quickViewProduct ? (
+  <div
+    onClick={() => setQuickViewProduct(null)}
+    style={{
+      position:'fixed',
+      inset:0,
+      background:'rgba(15,25,35,0.65)',
+      zIndex:9999,
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      padding:20,
+      backdropFilter:'blur(6px)'
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        background:'#fff',
+        borderRadius:24,
+        maxWidth:900,
+        width:'100%',
+        overflow:'hidden',
+        display:'grid',
+        gridTemplateColumns:'1fr 1fr',
+        boxShadow:'0 20px 60px rgba(0,0,0,0.25)'
+      }}
+    >
+      <div style={{background:'#f8f9fa', padding:40, display:'flex', alignItems:'center', justifyContent:'center'}}>
+        <img
+          src={quickViewProduct.images?.[0]?.startsWith('http') ? quickViewProduct.images[0] : `http://localhost:3000${quickViewProduct.images?.[0]}`}
+          alt={quickViewProduct.name}
+          style={{maxWidth:'100%', maxHeight:420, objectFit:'contain'}}
+        />
+      </div>
+
+      <div style={{padding:40}}>
+        <div style={{fontSize:12, color:'#94a3b8', marginBottom:8, textTransform:'uppercase'}}>
+          {quickViewProduct.vendor?.storeName}
+        </div>
+
+        <h2 style={{fontSize:28, marginBottom:16, color:'#0f172a'}}>
+          {quickViewProduct.name}
+        </h2>
+
+        <div style={{fontSize:32, fontWeight:800, color:'#f97316', marginBottom:20}}>
+          {formatQAR(quickViewProduct.price)}
+        </div>
+
+        <p style={{color:'#64748b', lineHeight:1.7, marginBottom:24}}>
+          {language === 'AR'
+  ? 'منتج عالي الجودة مع توصيل سريع في جميع أنحاء قطر.'
+  : 'Premium quality product with fast delivery across Qatar.'}
+        </p>
+
+        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
+          <span style={{fontWeight:600}}>
+          {language === 'AR' ? 'الكمية' : 'Qty'}
+          </span>
+          {language === 'AR' ? (
+  <>
+    <button onClick={() => setQuickQty(quickQty + 1)}>+</button>
+    <strong>{quickQty}</strong>
+    <button onClick={() => setQuickQty(Math.max(1, quickQty - 1))}>-</button>
+  </>
+) : (
+  <>
+    <button onClick={() => setQuickQty(Math.max(1, quickQty - 1))}>-</button>
+    <strong>{quickQty}</strong>
+    <button onClick={() => setQuickQty(quickQty + 1)}>+</button>
+  </>
+)}
+        </div>
+
+        <div style={{display:'flex', gap:12}}>
+          <button
+            onClick={async () => {
+              try {
+                await cart.add({ productId: quickViewProduct.id, quantity: quickQty })
+                showToast(`Added ${quickQty} item(s) to cart`)
+                setQuickViewProduct(null)
+                // Refresh the navbar cart count from the server
+                try {
+                  const r = await cart.get()
+                  const count = (r.data.items || []).reduce((s, i) => s + i.quantity, 0)
+                  window.dispatchEvent(new CustomEvent('jaspr-cart-updated', { detail: count }))
+                } catch (e) {}
+              } catch (e) {
+                showToast(language === 'AR' ? 'يرجى تسجيل الدخول أولاً' : 'Please log in to add items')
+              }
+            }}
+            style={{flex:1, padding:'14px 18px', borderRadius:14, border:'none', background:'#f97316', color:'#fff', fontWeight:700, cursor:'pointer'}}
+          >
+            {language === 'AR' ? 'أضف إلى السلة' : 'Add to Cart'}
+          </button>
+
+          <button
+            onClick={() => {
+              window.location.href = `/products/${quickViewProduct.id}`
+            }}
+            style={{flex:1, padding:'14px 18px', borderRadius:14, border:'1px solid #dfe3e8', background:'#fff', color:'#0f1923', fontWeight:700, cursor:'pointer'}}
+          >
+            {language === 'AR' ? 'عرض التفاصيل' : 'View Details'}
+          </button>
+
+          <button
+            onClick={() => toggleWishlist(quickViewProduct.id)}
+            style={{padding:'14px 18px', borderRadius:14, border:'1px solid #dfe3e8', background:'#fff', cursor:'pointer', fontWeight:700}}
+          >
+            ♥
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+) : null
 
   const clearFilters = () => {
     setSelectedCategory('')
+    setSelectedVendor('')
+    setSelectedCondition('')
     setPriceRange({ min: '', max: '' })
     setSearch('')
-    setSelectedCondition('')
+  }
+  const categoryName = (name) => {
+  if (language !== 'AR') return name
+
+  const map = {
+    'Accessories': 'الإكسسوارات',
+    'Audio': 'الصوتيات',
+    'Beauty': 'الجمال',
+    'Bluetooth Headphones': 'سماعات بلوتوث',
+    'Computers': 'أجهزة الكمبيوتر',
+    'Fashion': 'الأزياء',
+    'Headphones': 'سماعات الرأس',
+    'Keyboard': 'لوحات المفاتيح',
+    'Home & Kitchen': 'المنزل والمطبخ',
+    'Mobile Covers': 'أغطية الجوال',
+    'Laptops': 'اللابتوبات',
+    'Mouse': 'الفأرة',
+    'Mobiles': 'الجوالات',
+    'Smartphones': 'الهواتف الذكية',
+    'Smart Watch': 'ساعة ذكية',
+    'Smart Watches': 'الساعات الذكية',
+    'Tablets': 'الأجهزة اللوحية',
+    'Wearables': 'الأجهزة القابلة للارتداء'
   }
 
-  return (
-    <div style={{background:'#f8f9fa', minHeight:'100vh'}}>
+  return map[name] || name
+}
 
+  return (
+  <div className="jm-page" style={{background:'#f8f9fa', minHeight:'100vh'}}>
+    {toast && (
+      <div
+        style={{
+          position:'fixed',
+          bottom:20,
+          right:20,
+          background:'#0f1923',
+          color:'#fff',
+          padding:'12px 18px',
+          borderRadius:10,
+          zIndex:9999,
+          fontWeight:600,
+          boxShadow:'0 6px 20px rgba(0,0,0,0.2)'
+        }}
+      >
+        {toast}
+      </div>
+    )}
+
+    {quickViewModal}
       {/* Hero Banner */}
       <div style={{background:'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)', padding:'40px 32px', marginBottom:32, position:'relative', overflow:'hidden'}}>
         <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, display:'flex', flexWrap:'wrap', opacity:0.06, pointerEvents:'none', overflow:'hidden', alignContent:'flex-start'}}>
@@ -115,208 +390,296 @@ function Products({ t = (k) => k, language = 'EN' }) {
         </div>
       </div>
 
-      <div style={{maxWidth:1100, margin:'0 auto', padding:'0 32px 32px'}}>
-      <input style={{...styles.search, background:'#fff', boxShadow:'0 2px 8px rgba(0,0,0,0.08)'}} placeholder={t('searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} />
-      <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
-        <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
-          style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
-          <option value="">{t('allCategories')}</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select value={selectedCondition} onChange={e => setSelectedCondition(e.target.value)}
-          style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:140}}>
-          <option value="">{t('allConditions')}</option>
-          <option value="NEW">{t('conditionNew')}</option>
-          <option value="LIKE_NEW">{t('conditionLikeNew')}</option>
-          <option value="GOOD">{t('conditionGood')}</option>
-          <option value="FAIR">{t('conditionFair')}</option>
-        </select>
-        <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}}
-          placeholder={t('minPrice')} type="number" value={priceRange.min}
-          onChange={e => setPriceRange({...priceRange, min: e.target.value})} />
-        <span style={{color:'#666'}}>{t('to')}</span>
-        <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}}
-          placeholder={t('maxPrice')} type="number" value={priceRange.max}
-          onChange={e => setPriceRange({...priceRange, max: e.target.value})} />
-        {(selectedCategory || priceRange.min || priceRange.max || search || selectedCondition) && (
-          <button onClick={clearFilters}
-            style={{padding:'10px 16px', borderRadius:8, border:'1px solid #ddd', background:'#f8f9fa', cursor:'pointer', fontSize:14, color:'#666'}}>
-            {t('clearFilters')}
-          </button>
-        )}
-        <span style={{color:'#888', fontSize:14, marginLeft:'auto'}}>
-          {loading ? t('loading') : `${filtered.length} ${t('found')}`}
-        </span>
-      </div>
-      {categories.length > 0 && (
-        <div style={{display:'flex', gap:8, marginBottom:20, flexWrap:'wrap'}}>
-          <button onClick={() => setSelectedCategory('')}
-            style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500,
-              background: selectedCategory === '' ? '#f97316' : '#f8f9fa', color: selectedCategory === '' ? '#fff' : '#555'}}>
-            {t('all')}
-          </button>
-          {categories.map(c => (
-            <button key={c.id} onClick={() => setSelectedCategory(selectedCategory === c.id ? '' : c.id)}
-              style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500,
-                background: selectedCategory === c.id ? '#f97316' : '#f8f9fa', color: selectedCategory === c.id ? '#fff' : '#555'}}>
-              {c.name}
-            </button>
-          ))}
+      <div style={{maxWidth:1100, margin:'0 auto', padding:'0 32px 100px'}}>
+        <RecentlyViewedStrip items={items} t={t} />
+        <div
+  style={{
+    position:'relative',
+    zIndex:5,
+    padding:'8px 12px',
+    backdropFilter:'blur(10px)',
+    background:'rgba(248,249,250,0.92)',
+    borderRadius:20,
+    marginBottom:20,
+    maxWidth:1100,
+    margin:'0 auto 20px',
+    boxShadow:'0 8px 24px rgba(15,25,35,0.08)',
+    border:'1px solid #eef0f3',
+  }}
+>
+        <input
+          style={{...styles.search, background:'#fff', boxShadow:'0 2px 8px rgba(0,0,0,0.08)'}}
+          placeholder="Search products, brands, categories..."
+          value={search}
+          onChange={e => { setSearch(e.target.value); setShowSuggest(true) }}
+          onFocus={() => setShowSuggest(true)}
+          onBlur={() => setTimeout(() => setShowSuggest(false), 180)}
+        />
+        {showSuggest && search.trim().length >= 1 && (() => {
+          const q = search.trim().toLowerCase()
+          const matches = items.filter(p =>
+            p.name?.toLowerCase().includes(q) ||
+            p.vendor?.storeName?.toLowerCase().includes(q) ||
+            p.category?.name?.toLowerCase().includes(q)
+          ).slice(0, 6)
+          if (matches.length === 0) return null
+          return (
+            <div className="jm-card" style={{position:'absolute', top:'100%', left:12, right:12, background:'#fff', border:'1px solid #eef0f3', borderRadius:14, boxShadow:'0 12px 32px rgba(15,25,35,0.18)', marginTop:6, overflow:'hidden', zIndex:10}}>
+              {matches.map(p => {
+                const img = p.images?.[0]
+                const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+                return (
+                  <Link
+                    key={p.id}
+                    to={`/products/${p.id}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', textDecoration:'none', color:'inherit', borderBottom:'1px solid #f1f5f9'}}
+                  >
+                    <div style={{width:38, height:38, borderRadius:8, background:'#f8fafc', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0}}>
+                      {src ? <img src={src} alt="" style={{width:'100%', height:'100%', objectFit:'contain'}} /> : <span>📱</span>}
+                    </div>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div className="jm-card-title" style={{fontSize:13, fontWeight:600, color:'#0f1923', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.name}</div>
+                      <div className="jm-card-meta" style={{fontSize:11, color:'#94a3b8'}}>{p.vendor?.storeName} · {catLabel(p.category?.name, language)}</div>
+                    </div>
+                    <div style={{fontSize:13, fontWeight:700, color:'#f97316', whiteSpace:'nowrap'}}>{formatQAR(p.price)}</div>
+                  </Link>
+                )
+              })}
+            </div>
+          )
+        })()}
         </div>
-      )}
-      {filtered.length === 0 && (
-      <div style={{
-  textAlign: 'center',
-  padding: '80px 24px',
-  background: '#fff',
-  borderRadius: 24,
-  boxShadow: '0 12px 32px rgba(15,25,35,0.08)',
-  border: '1px solid #eef0f3',
-  maxWidth: 620,
-  margin: '40px auto'
-}}>
-  <div style={{ fontSize: 54, marginBottom: 16 }}>🛒</div>
-  <h3 style={{ fontSize: 26, color: '#0f1923', marginBottom: 10 }}>
-    {t('noProducts')}
-  </h3>
-  <p style={{ color: '#667085', marginBottom: 24 }}>
-    Try changing your filters or check back soon for new verified products.
-  </p>
-  <button onClick={clearFilters} style={{
-    ...styles.heroBtn,
-    padding: '14px 28px',
-    borderRadius: 14
-  }}>
-    {t('clearFilters')}
-  </button>
-</div>
-)}
-       
-        <div style={styles.grid}>
-          {filtered.map(p => {
-            const cond = conditionLabel(p.condition)
-            const imgSrc = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`) : null
-            const avgRating = Math.round(p.avgRating || 0)
-            return (
-              <div key={p.id} style={{border:'1px solid #eef0f3', borderRadius:24, overflow:'hidden', background:'#fff', boxShadow:'0 10px 30px rgba(15,25,35,0.08)', transition:'all .3s ease', cursor:'pointer'}}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-4px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.13)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(0,0,0,0.07)' }}>
-                {/* Image */}
-                <div style={{height:220,  padding:16, background:'linear-gradient(180deg,#f8fafc,#eef2f7)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:64, overflow:'hidden', position:'relative'}}>
-                  {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} /> : '📱'}
-                  <span style={{position:'absolute', top:10, left:10, padding:'3px 8px', borderRadius:6, fontSize:11, fontWeight:700, background: cond.bg, color: cond.color}}>{cond.text}</span>
-                </div>
-                {/* Body */}
-                <div style={{padding:'14px 16px'}}>
-                  <p style={{fontSize:11, color:'#aaa', marginBottom:4, textTransform:'uppercase', letterSpacing:0.5}}>{p.vendor?.storeName} · {p.category?.name}</p>
-                  <h3 style={{fontSize:15, fontWeight:700, color:'#0f1923', marginBottom:8, lineHeight:1.4, minHeight:40}}>{p.name}</h3>
-                  <div style={{fontSize:12,color:'#666',marginBottom:10,lineHeight:1.6}}>
-</div>
 
-<div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
-  {p.codEligible && (
-    <span style={{background:'#dbeafe',color:'#1d4ed8',padding:'4px 8px',borderRadius:20,fontSize:11,fontWeight:700}}>
-    </span>
-  )}
+        {!loading && items.length > 0 && <RecommendedForYou items={items} t={t} />}
 
-  {p.freeDeliveryEligible && (
-    <span style={{background:'#dcfce7',color:'#166534',padding:'4px 8px',borderRadius:20,fontSize:11,fontWeight:700}}>
-      Free Delivery
-    </span>
-  )}
-</div>
-                  
-  {p.brand && <div><strong>Brand:</strong> {p.brand}</div>}
-  {p.model && <div><strong>Model:</strong> {p.model}</div>}
-  {p.warranty && <div><strong>Warranty:</strong> {p.warranty}</div>}
-</div>
+        <div className="jm-shop-layout">
+          <aside className="jm-shop-filters">
+        <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
+          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
+            <option value="">{t('allCategories')}</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{categoryName(c.name)}</option>)}
+          </select>
 
-<div style={{
-  display:'flex',
-  gap:6,
-  flexWrap:'wrap',
-  marginBottom:10
-}}>
-  {p.codEligible && (
-    <span style={{
-      background:'#dbeafe',
-      color:'#1d4ed8',
-      padding:'4px 8px',
-      borderRadius:20,
-      fontSize:11,
-      fontWeight:700
-    }}>
-      COD
-    </span>
-  )}
+          <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
+            <option value="">{language === 'AR' ? 'جميع البائعين' : 'All Vendors'}</option>
+            {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
 
-  {p.freeDeliveryEligible && (
-    <span style={{
-      background:'#dcfce7',
-      color:'#166534',
-      padding:'4px 8px',
-      borderRadius:20,
-      fontSize:11,
-      fontWeight:700
-    }}>
-    </span>
-  )}
-</div>
-                  {/* Stars */}
-                  <div style={{display:'flex', alignItems:'center', gap:4, marginBottom:10}}>
-                    {[1,2,3,4,5].map(s => (
-                      <span key={s} style={{fontSize:13, color: s <= avgRating ? '#f97316' : '#e5e7eb'}}>★</span>
-                    ))}
-                    {p.reviewCount > 0 && <span style={{fontSize:11, color:'#aaa', marginLeft:2}}>({p.reviewCount})</span>}
-                  </div>
-                  {/* Price */}
-                  <div style={{marginBottom:12}}>
-  {p.compareAtPrice && p.compareAtPrice > p.price && (
-    <div style={{
-      fontSize:13,
-      color:'#888',
-      textDecoration:'line-through',
-      marginBottom:4
-    }}>
-      {formatQAR(p.compareAtPrice)}
-    </div>
-  )}
+          <select value={selectedCondition} onChange={e => setSelectedCondition(e.target.value)} style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:140}}>
+            <option value="">{language === 'AR' ? 'جميع الحالات' : 'All Conditions'}</option>
+            <option value="NEW">{t('conditionNew')}</option>
+            <option value="LIKE_NEW">{t('conditionLikeNew')}</option>
+            <option value="GOOD">{t('conditionGood')}</option>
+            <option value="FAIR">{t('conditionFair')}</option>
+          </select>
 
-  <div style={{
+          <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}} placeholder={t('minPrice')} type="number" value={priceRange.min} onChange={e => setPriceRange({...priceRange, min: e.target.value})} />
+          <span style={{color:'#666'}}>{t('to')}</span>
+          <input style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, width:120}} placeholder={t('maxPrice')} type="number" value={priceRange.max} onChange={e => setPriceRange({...priceRange, max: e.target.value})} />
+
+          {(selectedCategory || selectedVendor || priceRange.min || priceRange.max || search || selectedCondition) && (
+            <button onClick={clearFilters} style={{padding:'10px 16px', borderRadius:8, border:'1px solid #ddd', background:'#f8f9fa', cursor:'pointer', fontSize:14, color:'#666'}}>
+              {t('clearFilters')}
+            </button>
+          )}
+
+          <span style={{color:'#888', fontSize:14, marginLeft:'auto'}}>
+            {loading ? t('loading') : `${filtered.length} ${t('found')}`}
+          </span>
+        </div>
+
+        {categories.length > 0 && (
+          <div style={{display:'flex', gap:8, marginBottom:20, flexWrap:'wrap'}}>
+            <button onClick={() => setSelectedCategory('')} style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background: selectedCategory === '' ? '#f97316' : '#f8f9fa', color: selectedCategory === '' ? '#fff' : '#555'}}>
+              {t('all')}
+            </button>
+            {categories.map(c => (
+              <button key={c.id} onClick={() => setSelectedCategory(selectedCategory === c.id ? '' : c.id)} style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background: selectedCategory === c.id ? '#f97316' : '#f8f9fa', color: selectedCategory === c.id ? '#fff' : '#555'}}>
+                {categoryName(c.name)}
+              </button>
+            ))}
+          </div>
+        )}
+          </aside>
+          <main className="jm-shop-main">
+
+        {loading ? (
+          <div style={styles.grid}>
+            {Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="jm-card" style={{textAlign:'center', padding:'80px 24px', background:'#fff', borderRadius:24, boxShadow:'0 12px 32px rgba(15,25,35,0.08)', border:'1px solid #eef0f3', maxWidth:620, margin:'40px auto'}}>
+            <div style={{fontSize:54, marginBottom:16}}>🛒</div>
+            <h3 className="jm-card-title" style={{fontSize:26, color:'#0f1923', marginBottom:10}}>{t('noProducts')}</h3>
+            <p className="jm-card-meta" style={{color:'#667085', marginBottom:24}}>Try changing your filters or check back soon for new verified products.</p>
+            <button onClick={clearFilters} style={{...styles.heroBtn, padding:'14px 28px', borderRadius:14}}>{t('clearFilters')}</button>
+          </div>
+        ) : (
+          <div style={styles.grid}>
+            {filtered.map(p => {
+              const cond = conditionLabel(p.condition, language)
+              const imgSrc = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`) : null
+              const avgRating = Math.round(p.avgRating || 0)
+
+              return (
+                <div
+                  key={p.id}
+                  className="jm-card"
+                  style={{border:'1px solid #eef0f3', borderRadius:24, overflow:'hidden', background:'#fff', boxShadow:'0 10px 30px rgba(15,25,35,0.08)', transition:'all .3s ease', cursor:'pointer', display:'flex', flexDirection:'column', height:500}}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform='translateY(-6px) scale(1.01)'
+                    e.currentTarget.style.boxShadow='0 16px 36px rgba(15,25,35,0.16)'
+                    const img = e.currentTarget.querySelector('img')
+                    if (img) { img.style.transform = 'scale(1.12)'
+                    img.style.filter = 'brightness(1.03)'
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform='translateY(0) scale(1)'
+                    e.currentTarget.style.boxShadow='0 10px 30px rgba(15,25,35,0.08)'
+                    const img = e.currentTarget.querySelector('img')
+                    if (img) { img.style.transform = 'scale(1)'
+                    img.style.filter = 'brightness(1)'
+                    }
+                  }}
+                >
+                  <div className="jm-card-img" style={{height:190, padding:10, background:'linear-gradient(180deg,#f8fafc,#eef2f7)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:64, overflow:'hidden', position:'relative'}}>
+                    <button
+                    onClick={(e) => {
+  e.stopPropagation()
+
+  if (wishlist.includes(p.id)) {
+    toggleWishlist(p.id)
+    showToast('Removed from wishlist')
+  } else {
+    toggleWishlist(p.id)
+    showToast('Added to wishlist')
+  }
+}}
+
+  style={{
+    position:'absolute',
+    top:12,
+    right:12,
+    width:42,
+    height:42,
+    borderRadius:'50%',
+    border:'1px solid rgba(255,255,255,0.4)',
+    background:'rgba(255,255,255,0.85)',
+    backdropFilter:'blur(10px)',
     display:'flex',
     alignItems:'center',
-    gap:8
-  }}>
-    <p style={{
+    justifyContent:'center',
+    cursor:'pointer',
+    transition:'all .25s ease',
+    boxShadow:'0 4px 14px rgba(0,0,0,0.12)',
+    zIndex:5
+  }}
+  onMouseEnter={(e)=>{
+  e.currentTarget.style.transform='scale(1.1)'
+  e.currentTarget.style.boxShadow='0 8px 20px rgba(0,0,0,0.18)'
+}}
+onMouseLeave={(e)=>{
+  e.currentTarget.style.transform='scale(1)'
+  e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.12)'
+}}
+>
+  <span
+    style={{
+      color: wishlist.includes(p.id) ? '#ff4d6d' : '#666',
       fontSize:20,
-      fontWeight:800,
-      color:'#f97316',
-      margin:0
-    }}>
-      {formatQAR(p.price)}
-    </p>
+      transition:'all .25s ease'
+    }}
+  >
+    ♥
+  </span>
+</button>
 
-    {p.compareAtPrice && p.compareAtPrice > p.price && (
-      <span style={{
-        background:'#dcfce7',
-        color:'#166534',
-        padding:'2px 8px',
-        borderRadius:20,
-        fontSize:11,
-        fontWeight:700
-      }}>
-        {Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}% OFF
-      </span>
-    )}
-  </div>
-</div>
-                  <Link to={`/products/${p.id}`} style={{display:'block', textAlign:'center', background:'#0f1923', color:'#fff', padding:'10px 16px', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:600, letterSpacing:0.3}}>
-                    {t('viewDetails')}
-                  </Link>
+                    {imgSrc ? (
+                      <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:10, transition:'transform .35s ease, filter .35s ease'}} />
+                    ) : '📱'}
+
+                    <span style={{position:'absolute', top:10, left:10, padding:'3px 8px', borderRadius:6, fontSize:11, fontWeight:700, background:cond.bg, color:cond.color}}>
+                      {cond.text}
+                    </span>
+                  </div>
+
+                  <div className="jm-card-body" style={{padding:'14px 16px', display:'flex', flexDirection:'column', flex:1}}>
+                    <p className="jm-card-meta" style={{fontSize:11, color:'#aaa', marginBottom:4, textTransform:'uppercase', letterSpacing:0.5, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
+                      <span>{p.vendor?.storeName} · {catLabel(p.category?.name, language)}</span>
+                      {p.vendor?.isVerified && (
+                        <span title="Verified vendor" style={{background:'#dbeafe', color:'#1d4ed8', padding:'1px 6px', borderRadius:10, fontSize:9, fontWeight:700, letterSpacing:0.3, display:'inline-flex', alignItems:'center', gap:2}}>
+                          ✓ {t('verified')}
+                        </span>
+                      )}
+                    </p>
+
+                    <h3 className="jm-card-title" style={{fontSize:15, fontWeight:700, color:'#0f1923', marginBottom:12, lineHeight:1.4, minHeight:40}}>
+                      {p.name}
+                    </h3>
+
+                    <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:10}}>
+                      {p.codEligible && (
+                        <span style={{background:'#dbeafe', color:'#1d4ed8', padding:'4px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>COD</span>
+                      )}
+                      {p.freeDeliveryEligible && (
+                        <span style={{background:'#dcfce7', color:'#166534', padding:'4px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>Free Delivery</span>
+                      )}
+                    </div>
+
+                    <div style={{display:'flex', alignItems:'center', gap:4, marginBottom:10}}>
+                      {[1,2,3,4,5].map(s => (
+                        <span key={s} style={{fontSize:13, color: s <= avgRating ? '#fbbf24' : '#d1d5db'}}>★</span>
+                      ))}
+                      {p.reviewCount > 0 && <span style={{fontSize:11, color:'#aaa', marginLeft:2}}>({p.reviewCount})</span>}
+                    </div>
+
+                    <div style={{marginBottom:16}}>
+                      {p.compareAtPrice && p.compareAtPrice > p.price && (
+                        <div style={{fontSize:13, color:'#888', textDecoration:'line-through', marginBottom:4}}>
+                          {formatQAR(p.compareAtPrice)}
+                        </div>
+                      )}
+                      <div style={{display:'flex', alignItems:'center', gap:8}}>
+                        <p style={{fontSize:20, fontWeight:800, color:'#f97316', margin:0}}>{formatQAR(p.price)}</p>
+                        {p.compareAtPrice && p.compareAtPrice > p.price && (
+                          <span style={{background:'#dcfce7', color:'#166534', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>
+                            {language === 'AR'
+                              ? `${Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}٪ خصم`
+                              : `${Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}% OFF`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+<button
+  onClick={() => setQuickViewProduct(p)}
+  style={{
+    width:'100%',
+    padding:'10px 14px',
+    borderRadius:12,
+    border:'1px solid #dfe3e8',
+    background:'#fff',
+    color:'#0f1923',
+    fontWeight:700,
+    cursor:'pointer',
+    marginBottom:10,
+    transition:'all .25s ease'
+  }}
+>
+  👁 {language === 'AR' ? 'عرض سريع' : 'Quick View'}
+</button>
+                    <Link to={`/products/${p.id}`} style={{display:'block', textAlign:'center', background:'#0f1923', color:'#fff', padding:'10px 16px', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:600, letterSpacing:0.3, marginTop:'auto'}}>
+                      {t('viewDetails')}
+                    </Link>
+                  </div>
                 </div>
-              
               )
             })}
+          </div>
+        )}
+          </main>
         </div>
       </div>
     </div>
@@ -356,15 +719,43 @@ function Login({ onLogin, t = (k) => k }) {
 function Register({ onLogin, t = (k) => k }) {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'CUSTOMER' })
   const [error, setError] = useState('')
+  const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     try {
       const res = await auth.register(form)
+      // New accounts are PENDING admin approval — no auto-login.
+      if (res.data.pending || !res.data.token) {
+        setSubmitted(true)
+        return
+      }
+      // (fallback, should not happen while approval is required)
       localStorage.setItem('token', res.data.token)
       onLogin(res.data.user)
       window.location.href = '/'
-    } catch { setError(t('registrationFailed')) }
+    } catch (err) {
+      setError(err.response?.data?.error || t('registrationFailed'))
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div style={styles.formPage}>
+        <div style={{...styles.formBox, textAlign:'center'}}>
+          <div style={{fontSize:48, marginBottom:12}}>✅</div>
+          <h2 style={styles.formTitle}>Account Created</h2>
+          <p style={{color:'#475569', lineHeight:1.6, marginBottom:20}}>
+            Your account has been created and is <strong>pending admin approval</strong>.
+            You will be able to sign in and start shopping once your account is approved.
+          </p>
+          <Link to="/login" style={{display:'inline-block', background:'#f97316', color:'#fff', padding:'12px 28px', borderRadius:10, textDecoration:'none', fontWeight:700}}>
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -459,12 +850,31 @@ function Cart({ onCartUpdate, t = (k) => k }) {
   )
 }
 
-function Checkout({ t = (k) => k }) {
-  const [form, setForm] = useState({ name: '', street: '', city: 'Doha', country: 'Qatar', phone: '' })
+function Checkout({ t = (k) => k, language = 'EN' }) {
+  const ar = language === 'AR'
+  const [form, setForm] = useState({
+    name: '',
+    zone: '',
+    street: '',
+    building: '',
+    unit: '',
+    city: 'Doha',
+    country: 'Qatar',
+    phone: '',
+    // Delivery instructions
+    altPhone: '',
+    preferredTime: 'any',
+    receiverName: '',
+    deliveryNotes: ''
+  })
   const [paymentMethod, setPaymentMethod] = useState('cod')
   const [cardForm, setCardForm] = useState({ cardName: '', cardNumber: '', expiry: '', cvv: '' })
   const [cartData, setCartData] = useState({ items: [], total: 0 })
   const [loadingCart, setLoadingCart] = useState(true)
+  const total = cartData.total || 0
+  const deliveryFee = total >= 1000 ? 0 : 15
+  const vatAmount = 0
+  const grandTotal = total + deliveryFee + vatAmount
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -481,11 +891,32 @@ function Checkout({ t = (k) => k }) {
   }
 
   const handlePlaceOrder = async () => {
-    if (!form.name || !form.street || !form.phone) { setError(t('fillShipping')); return }
+    if (!form.name || !form.zone || !form.street || !form.building || !form.phone) {
+      setError(ar ? 'يرجى تعبئة الاسم والمنطقة والشارع والمبنى ورقم الهاتف' : 'Please fill name, zone, street, building and phone')
+      return
+    }
     setPlacing(true); setError('')
     try {
-      const res = await orders.place({ shippingAddress: form })
-      navigate(`/orders/${res.data.order.id}`)
+      // Create the order first (works for both COD and card).
+      const res = await orders.place({ shippingAddress: form, paymentMethod })
+      const orderId = res.data.order.id
+
+      if (paymentMethod === 'card') {
+        // Card → start a MyFatoorah payment for this order, then redirect to
+        // the secure hosted page. We never handle card numbers ourselves.
+        const pay = await payments.orderPayment({ orderId })
+        if (pay.data.paymentUrl) {
+          window.location = pay.data.paymentUrl
+          return
+        }
+        // If we couldn't get a payment URL, the order still exists as PENDING.
+        setError('Could not start card payment. Your order is saved; please try paying again from My Orders.')
+        setPlacing(false)
+        return
+      }
+
+      // COD → straight to the order page.
+      navigate(`/orders/${orderId}`)
     } catch (err) {
       setError(err.response?.data?.error || t('orderFailed'))
       setPlacing(false)
@@ -498,33 +929,59 @@ function Checkout({ t = (k) => k }) {
       {error && <p style={styles.error}>{error}</p>}
       <div style={{display:'flex', gap:40, flexWrap:'wrap'}}>
         <div style={{flex:1, minWidth:280}}>
-          <h3 style={{marginBottom:16, fontSize:18}}>{t('shippingAddress')}</h3>
-          <input style={styles.input} placeholder={t('fullName')} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-          <input style={styles.input} placeholder={t('streetAddress')} value={form.street} onChange={e => setForm({...form, street: e.target.value})} />
-          <input style={styles.input} placeholder={t('city')} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
-          <input style={styles.input} placeholder={t('country')} value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
-          <input style={styles.input} placeholder={t('phoneNumber')} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-          <h3 style={{marginBottom:16, fontSize:18}}>{t('paymentMethod')}</h3>
+          <h3 style={{marginBottom:16, fontSize:18}}>{ar ? 'عنوان التوصيل' : 'Delivery Address'}</h3>
+          <input style={styles.input} placeholder={ar ? 'الاسم الكامل' : 'Full Name'} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+
+          {/* Qatari address: Zone / Street / Building are the national format */}
+          <div style={{display:'flex', gap:12}}>
+            <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم المنطقة' : 'Zone No.'} value={form.zone} onChange={e => setForm({...form, zone: e.target.value})} />
+            <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم الشارع' : 'Street No.'} value={form.street} onChange={e => setForm({...form, street: e.target.value})} />
+          </div>
+          <div style={{display:'flex', gap:12}}>
+            <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم المبنى' : 'Building No.'} value={form.building} onChange={e => setForm({...form, building: e.target.value})} />
+            <input style={{...styles.input, flex:1}} placeholder={ar ? 'الوحدة / الشقة (اختياري)' : 'Unit / Apt (optional)'} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} />
+          </div>
+          <div style={{display:'flex', gap:12}}>
+            <input style={{...styles.input, flex:1}} placeholder={ar ? 'المدينة' : 'City'} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+            <input style={{...styles.input, flex:1}} placeholder={ar ? 'الدولة' : 'Country'} value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
+          </div>
+          <input style={styles.input} placeholder={ar ? 'رقم الهاتف' : 'Phone Number'} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+
+          {/* Delivery preferences */}
+          <h3 style={{marginBottom:12, marginTop:8, fontSize:18}}>{ar ? 'تعليمات التوصيل (اختياري)' : 'Delivery Instructions (optional)'}</h3>
+          <select style={styles.input} value={form.preferredTime} onChange={e => setForm({...form, preferredTime: e.target.value})}>
+            <option value="any">{ar ? 'أي وقت' : 'Any time'}</option>
+            <option value="morning">{ar ? 'صباحاً (٨ص - ١٢م)' : 'Morning (8am - 12pm)'}</option>
+            <option value="afternoon">{ar ? 'ظهراً (١٢م - ٤م)' : 'Afternoon (12pm - 4pm)'}</option>
+            <option value="evening">{ar ? 'مساءً (٤م - ٩م)' : 'Evening (4pm - 9pm)'}</option>
+          </select>
+          <input style={styles.input} placeholder={ar ? 'رقم بديل للتواصل أثناء التوصيل' : 'Alternative contact number for delivery'} value={form.altPhone} onChange={e => setForm({...form, altPhone: e.target.value})} />
+          <input style={styles.input} placeholder={ar ? 'اسم المستلم البديل (إن وُجد)' : 'Receiver name (if someone else)'} value={form.receiverName} onChange={e => setForm({...form, receiverName: e.target.value})} />
+          <textarea style={{...styles.input, minHeight:70, resize:'vertical', fontFamily:'inherit'}} placeholder={ar ? 'ملاحظات أخرى (مثال: اترك مع الحارس، اتصل قبل الوصول)' : 'Other notes (e.g. leave with security, call before arriving)'} value={form.deliveryNotes} onChange={e => setForm({...form, deliveryNotes: e.target.value})} />
+
+          <h3 style={{marginBottom:16, marginTop:8, fontSize:18}}>{t('paymentMethod')}</h3>
           <div onClick={() => setPaymentMethod('cod')} style={{padding:'14px 16px', border: paymentMethod === 'cod' ? '2px solid #f97316' : '2px solid #eee', borderRadius:8, marginBottom:12, background: paymentMethod === 'cod' ? '#fff7ed' : '#fff', cursor:'pointer'}}>
             <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}}>
               <input type="radio" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
-              <span>{t('cashOnDelivery')}</span>
+              <span style={{color:'#0f1923', fontWeight:600}}>{t('cashOnDelivery')}</span>
             </label>
           </div>
           <div onClick={() => setPaymentMethod('card')} style={{border: paymentMethod === 'card' ? '2px solid #f97316' : '2px solid #eee', borderRadius:8, marginBottom:24, background: paymentMethod === 'card' ? '#fff7ed' : '#fff', cursor:'pointer', overflow:'hidden'}}>
             <div style={{padding:'14px 16px'}}>
               <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}}>
                 <input type="radio" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
-                <span>{t('creditDebitCard')}</span>
+                <span style={{color:'#0f1923', fontWeight:600}}>{t('creditDebitCard')}</span>
               </label>
             </div>
             {paymentMethod === 'card' && (
               <div style={{padding:'0 16px 16px', borderTop:'1px solid #f0e0d0'}} onClick={e => e.stopPropagation()}>
-                <input style={{...styles.input, marginTop:12}} placeholder={t('cardholderName')} value={cardForm.cardName} onChange={e => setCardForm({...cardForm, cardName: e.target.value})} />
-                <input style={{...styles.input}} placeholder="1234 5678 9012 3456" value={cardForm.cardNumber} onChange={e => setCardForm({...cardForm, cardNumber: formatCardNumber(e.target.value)})} maxLength={19} />
-                <div style={{display:'flex', gap:12}}>
-                  <input style={{...styles.input, flex:1}} placeholder="MM/YY" value={cardForm.expiry} onChange={e => setCardForm({...cardForm, expiry: formatExpiry(e.target.value)})} maxLength={5} />
-                  <input style={{...styles.input, flex:1}} placeholder="CVV" type="password" value={cardForm.cvv} onChange={e => setCardForm({...cardForm, cvv: e.target.value.replace(/\D/g, '').slice(0,4)})} maxLength={4} />
+                <p style={{marginTop:12, fontSize:13, color:'#64748b', lineHeight:1.5}}>
+                  {t('cardRedirectNote') !== 'cardRedirectNote'
+                    ? t('cardRedirectNote')
+                    : "You'll be redirected to our secure payment page to complete your card payment. We never store your card details."}
+                </p>
+                <div style={{display:'flex', alignItems:'center', gap:8, marginTop:8}}>
+                  <span style={{fontSize:11, color:'#94a3b8'}}>🔒 Secured by MyFatoorah</span>
                 </div>
               </div>
             )}
@@ -535,17 +992,53 @@ function Checkout({ t = (k) => k }) {
         </div>
         <div style={{width:280}}>
           <h3 style={{marginBottom:16, fontSize:18}}>{t('orderSummary')}</h3>
-          <div style={{background:'#f8f9fa', borderRadius:12, padding:20}}>
+          <div style={{background:'#f8f9fa', borderRadius:12, padding:20, color:'#0f1923'}}>
             {loadingCart ? <p>{t('loading')}</p> : cartData.items.map(item => (
               <div key={item.id} style={{display:'flex', justifyContent:'space-between', marginBottom:12, fontSize:14}}>
                 <span style={{flex:1, marginRight:8}}>{item.product.name} x {item.quantity}</span>
                 <span style={{fontWeight:600}}>{formatQAR(item.product.price * item.quantity)}</span>
               </div>
             ))}
-            <div style={{borderTop:'1px solid #ddd', paddingTop:12, display:'flex', justifyContent:'space-between', fontWeight:700, fontSize:16}}>
-              <span>{t('total')}</span>
-              <span style={{color:'#f97316'}}>{formatQAR(cartData.total)}</span>
-            </div>
+            <div style={{borderTop:'1px solid #ddd', paddingTop:14, marginTop:14}}>
+
+  <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
+    <span>Subtotal</span>
+    <strong>{formatQAR(total)}</strong>
+  </div>
+
+  <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
+    <span>Delivery</span>
+    <strong>{deliveryFee === 0 ? 'Free' : formatQAR(deliveryFee)}</strong>
+  </div>
+
+<p style={{
+  fontSize:12,
+  color:'#666',
+  marginTop:-4,
+  marginBottom:12
+}}>
+  Free delivery on orders above QAR 1,000
+</p>
+
+  <div style={{display:'flex', justifyContent:'space-between', marginBottom:14}}>
+    <span>VAT</span>
+    <strong>Included</strong>
+  </div>
+
+  <div style={{
+    display:'flex',
+    justifyContent:'space-between',
+    paddingTop:14,
+    borderTop:'1px solid #eee',
+    fontSize:18,
+    fontWeight:700,
+    color:'#f97316'
+  }}>
+    <span>Total</span>
+    <span>{formatQAR(grandTotal)}</span>
+  </div>
+
+</div>
           </div>
         </div>
       </div>
@@ -575,10 +1068,57 @@ function OrderDetail({ t = (k) => k }) {
         <h2 style={{fontSize:28, marginBottom:8}}>{t('orderSuccess')}</h2>
         <p style={{color:'#666'}}>{t('orderId')}: <span style={{fontFamily:'monospace', background:'#f8f9fa', padding:'2px 8px', borderRadius:4}}>{order.id?.slice(0,8)}...</span></p>
       </div>
-      <div style={{background:'#f8f9fa', borderRadius:12, padding:24, marginBottom:24}}>
+      <div style={{background:'#f8f9fa', borderRadius:12, padding:24, marginBottom:24, color:'#0f1923'}}>
         <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>{t('status')}</span><span style={{fontWeight:700, color: statusColor[order.status]}}>{order.status}</span></div>
         <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}><span style={{color:'#666'}}>{t('total')}</span><span style={{fontWeight:700, color:'#f97316', fontSize:18}}>{formatQAR(order.totalAmount)}</span></div>
-        <div style={{display:'flex', justifyContent:'space-between'}}><span style={{color:'#666'}}>{t('deliveryTo')}</span><span style={{fontWeight:500}}>{order.shippingAddress?.street}, {order.shippingAddress?.city}</span></div>
+        {/* Payment method + paid status */}
+        <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}>
+          <span style={{color:'#666'}}>Payment</span>
+          <span style={{fontWeight:700}}>
+            {order.shippingAddress?.paymentMethod === 'card' || order.paymentRef ? (
+              <span style={{color:'#16a34a'}}>💳 Card · Paid</span>
+            ) : (
+              <span style={{color:'#92400e'}}>💵 Cash on Delivery</span>
+            )}
+          </span>
+        </div>
+        {/* Vendor(s) */}
+        {order.orderItems && order.orderItems.length > 0 && (
+          <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}>
+            <span style={{color:'#666'}}>Sold by</span>
+            <span style={{fontWeight:600, textAlign:'right'}}>
+              {[...new Set(order.orderItems.map(it => it.vendor?.storeName).filter(Boolean))].join(', ') || '—'}
+            </span>
+          </div>
+        )}
+        <div style={{borderTop:'1px solid #e5e7eb', paddingTop:16}}>
+          <div style={{color:'#666', marginBottom:6}}>{t('deliveryTo')}</div>
+          <div style={{fontWeight:500, lineHeight:1.6}}>
+            {order.shippingAddress?.name && <div>{order.shippingAddress.name}</div>}
+            <div>
+              {[
+                order.shippingAddress?.zone && `Zone ${order.shippingAddress.zone}`,
+                order.shippingAddress?.street && `Street ${order.shippingAddress.street}`,
+                order.shippingAddress?.building && `Building ${order.shippingAddress.building}`,
+                order.shippingAddress?.unit && `Unit ${order.shippingAddress.unit}`
+              ].filter(Boolean).join(', ')}
+            </div>
+            <div>{[order.shippingAddress?.city, order.shippingAddress?.country].filter(Boolean).join(', ')}</div>
+            {order.shippingAddress?.phone && <div>📞 {order.shippingAddress.phone}</div>}
+          </div>
+          {(order.shippingAddress?.altPhone || order.shippingAddress?.receiverName ||
+            (order.shippingAddress?.preferredTime && order.shippingAddress?.preferredTime !== 'any') ||
+            order.shippingAddress?.deliveryNotes) && (
+            <div style={{marginTop:12, padding:12, background:'#fff7ed', borderRadius:8, fontSize:13, lineHeight:1.7}}>
+              <div style={{fontWeight:600, marginBottom:4}}>📦 Delivery instructions</div>
+              {order.shippingAddress?.preferredTime && order.shippingAddress.preferredTime !== 'any' &&
+                <div>Preferred time: {order.shippingAddress.preferredTime}</div>}
+              {order.shippingAddress?.altPhone && <div>Alt. contact: {order.shippingAddress.altPhone}</div>}
+              {order.shippingAddress?.receiverName && <div>Receiver: {order.shippingAddress.receiverName}</div>}
+              {order.shippingAddress?.deliveryNotes && <div>Notes: {order.shippingAddress.deliveryNotes}</div>}
+            </div>
+          )}
+        </div>
       </div>
       <h3 style={{marginBottom:16}}>{t('itemsOrdered')}</h3>
       {order.orderItems?.map(item => (
@@ -655,14 +1195,15 @@ function Orders({ user, t = (k) => k }) {
   )
 }
 
-function ProductDetail({ user, t = (k) => k }) {
+function ProductDetail({ user, t = (k) => k, language = 'EN' }) {
   const { id } = useParams()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [added, setAdded] = useState(false)
   const [qty, setQty] = useState(1)
   const [showCartModal, setShowCartModal] = useState(false)
-  const [selectedImg, setSelectedImg] = useState(0)
+  const [selectedImage, setSelectedImage] = useState(0)
+  const [imageFade, setImageFade] = useState(true)
   const [reviews, setReviews] = useState([])
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -676,6 +1217,12 @@ function ProductDetail({ user, t = (k) => k }) {
   useEffect(() => {
     products.getOne(id).then(r => { setProduct(r.data); setLoading(false) })
     loadReviews()
+    // Track recently viewed (cap 8, dedupe, newest first)
+    try {
+      const prev = JSON.parse(localStorage.getItem('recentlyViewed') || '[]')
+      const next = [id, ...prev.filter(x => x !== id)].slice(0, 8)
+      localStorage.setItem('recentlyViewed', JSON.stringify(next))
+    } catch (e) { /* localStorage unavailable, ignore */ }
   }, [id]) // eslint-disable-line
 
   const handleAddToCart = async () => {
@@ -724,19 +1271,33 @@ function ProductDetail({ user, t = (k) => k }) {
   if (loading) return <p style={{padding:40}}>{t('loading')}</p>
   if (!product) return <p style={{padding:40}}>{t('productNotFound')}</p>
 
-  const images = product.images?.length > 0 ? product.images : [null]
+  const images = (product.images || []).filter(Boolean)
   const getImgSrc = (img) => img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
   const userReview = reviews.find(r => r.userId === user?.id)
-  const cond = conditionLabel(product.condition)
+  const cond = conditionLabel(product.condition, language)
   const avgRating = Math.round(product.avgRating || 0)
   const ratingCounts = [5,4,3,2,1].map(star => reviews.filter(r => r.rating === star).length)
 
   const cartModal = showCartModal && (
     <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{background:'#fff',borderRadius:16,padding:40,maxWidth:400,width:'90%',textAlign:'center'}}>
+      <div style={{background:'#fff',borderRadius:24,padding:40,maxWidth:420,width:'90%',textAlign:'center'}}>
         <div style={{fontSize:48,marginBottom:16}}>✅</div>
-        <h3 style={{marginBottom:8,fontSize:22}}>{t('addedToCart')}</h3>
-        <p style={{color:'#666',marginBottom:24}}>{t('itemAddedToCart')}</p>
+        <h3 style={{
+  marginBottom:8,
+  fontSize:24,
+  fontWeight:800,
+  color:'#0f1923'
+}}>
+  ✅ Added to Cart
+</h3>
+        <p style={{
+  color:'#555',
+  marginBottom:28,
+  lineHeight:1.6,
+  fontSize:15
+}}>
+  Your item has been successfully added to cart.
+</p>
         <div style={{display:'flex',gap:12}}>
           <button onClick={()=>setShowCartModal(false)} style={{flex:1,padding:'12px',border:'2px solid #f97316',borderRadius:8,background:'#fff',color:'#f97316',fontWeight:600,cursor:'pointer'}}>{t('continueShopping')}</button>
           <button onClick={()=>{setShowCartModal(false);window.location.href='/checkout'}} style={{flex:1,padding:'12px',border:'none',borderRadius:8,background:'#f97316',color:'#fff',fontWeight:600,cursor:'pointer'}}>{t('goToCheckout')}</button>
@@ -754,21 +1315,169 @@ function ProductDetail({ user, t = (k) => k }) {
 
         {/* Left — Images */}
         <div>
-          <div style={{width:'100%', aspectRatio:'1', background:'#f8f9fa', borderRadius:12, border:'1px solid #eee', display:'flex', alignItems:'center', justifyContent:'center', fontSize:100, overflow:'hidden', marginBottom:12}}>
-            {getImgSrc(images[selectedImg])
-              ? <img src={getImgSrc(images[selectedImg])} alt={product.name} style={{width:'100%',height:'100%',objectFit:'contain'}} />
-              : '📱'}
+          <div
+            style={{
+              width:'100%',
+              minHeight:430,
+              background:'#f8f9fa',
+              borderRadius:16,
+              border:'1px solid #eee',
+              display:'flex',
+              flexDirection:'column',
+              alignItems:'center',
+              justifyContent:'center',
+              overflow:'hidden',
+              position:'relative',
+              marginBottom:14,
+              padding:20
+            }}
+          >
+            {/* arrows here */}
+            {images.length > 1 && (
+  <>
+    <button
+      type="button"
+      onMouseEnter={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+      onClick={() => {
+  setImageFade(false)
+  setTimeout(() => {
+    setSelectedImage((selectedImage - 1 + images.length) % images.length)
+    setImageFade(true)
+  }, 120)
+}}
+      style={{
+        position:'absolute',
+        left:14,
+        top:'50%',
+        transform:'translateY(-50%)',
+        width:42,
+        height:42,
+        borderRadius:'50%',
+        border:'none',
+        background:'rgba(15,25,35,0.75)',
+        color:'#fff',
+        fontSize:24,
+        cursor:'pointer',
+        pointerEvents:'auto',
+        zIndex:5
+      }}
+    >
+      ‹
+    </button>
+
+    <button
+      type="button"
+      onMouseEnter={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+      onClick={() => {
+  setImageFade(false)
+  setTimeout(() => {
+    setSelectedImage((selectedImage + 1) % images.length)
+    setImageFade(true)
+  }, 120)
+}}
+      style={{
+        position:'absolute',
+        right:14,
+        top:'50%',
+        transform:'translateY(-50%)',
+        width:42,
+        height:42,
+        borderRadius:'50%',
+        border:'none',
+        background:'rgba(15,25,35,0.75)',
+        color:'#fff',
+        fontSize:24,
+        cursor:'pointer',
+        zIndex:5
+      }}
+    >
+      ›
+    </button>
+  </>
+)}
+            {getImgSrc(images[selectedImage]) ? (
+              <img
+  src={getImgSrc(images[selectedImage])}
+  alt={product.name}
+
+  onMouseMove={(e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+
+    const x = ((e.clientX - rect.left) / rect.width) * 100
+    const y = ((e.clientY - rect.top) / rect.height) * 100
+
+    e.currentTarget.style.transformOrigin = `${x}% ${y}%`
+  }}
+
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = 'scale(1.6)'
+  }}
+
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = 'scale(1)'
+    e.currentTarget.style.transformOrigin = 'center center'
+  }}
+
+  style={{
+    width:'100%',
+    height:'100%',
+    maxHeight:430,
+    objectFit:'contain',
+    display:'block',
+    transition:'transform 0.3s ease, opacity 0.25s ease',
+    opacity:imageFade ? 1 : 0.35,
+    cursor:'zoom-in'
+  }}
+/>
+            ) : (
+              <div style={{fontSize:64}}>📱</div>
+            )}
+
+            {images.length > 1 && (
+              <div
+                style={{
+                  display:'flex',
+                  gap:10,
+                  flexWrap:'wrap',
+                  marginTop:18,
+                  justifyContent:'center',
+                  width:'100%'
+                }}
+              >
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedImage(i)}
+                    style={{
+                      width:72,
+                      height:72,
+                      borderRadius:12,
+                      overflow:'hidden',
+                      cursor:'pointer',
+                      border:selectedImage === i ? '2px solid #f97316' : '1px solid #ddd',
+                      background:'#fff',
+                      padding:4,
+                      boxShadow:selectedImage === i ? '0 6px 16px rgba(249,115,22,0.25)' : 'none'
+                    }}
+                  >
+                    <img
+                      src={getImgSrc(img)}
+                      alt={`${product.name} ${i + 1}`}
+                      style={{
+                        width:'100%',
+                        height:'100%',
+                        objectFit:'contain',
+                        display:'block'
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {images.length > 1 && (
-            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
-              {images.map((img, i) => (
-                <div key={i} onClick={() => setSelectedImg(i)}
-                  style={{width:60, height:60, borderRadius:8, border: selectedImg === i ? '2px solid #f97316' : '1px solid #eee', background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, overflow:'hidden', cursor:'pointer'}}>
-                  {getImgSrc(img) ? <img src={getImgSrc(img)} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}} /> : '📱'}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Right — Details */}
@@ -776,7 +1485,7 @@ function ProductDetail({ user, t = (k) => k }) {
           <span style={{display:'inline-block', padding:'3px 10px', borderRadius:6, fontSize:12, fontWeight:600, background: cond.bg, color: cond.color, marginBottom:10}}>{cond.text}</span>
           <h1 style={{fontSize:22, fontWeight:600, lineHeight:1.4, marginBottom:8, color:'#0f1923'}}>{product.name}</h1>
           <p style={{color:'#888', fontSize:13, marginBottom:10}}>
-            {t('soldBy')} <span style={{color:'#f97316', fontWeight:600}}>{product.vendor?.storeName}</span> &nbsp;·&nbsp; {product.category?.name}
+            {t('soldBy')} <span style={{color:'#f97316', fontWeight:600}}>{product.vendor?.storeName}</span> &nbsp;·&nbsp; {catLabel(product.category?.name, language)}
           </p>
 
           {/* Stars */}
@@ -788,7 +1497,47 @@ function ProductDetail({ user, t = (k) => k }) {
 
           {/* Price */}
           <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:4}}>
-            <span style={{fontSize:32, fontWeight:700, color:'#f97316'}}>{formatQAR(product.price)}</span>
+            <div style={{marginBottom:12}}>
+            {product.compareAtPrice && product.compareAtPrice > product.price && (
+            <div style={{
+            fontSize:15,
+            color:'#888',
+            textDecoration:'line-through',
+            marginBottom:4
+            }}>
+            {formatQAR(product.compareAtPrice)}
+            </div>
+             )}
+
+  <div style={{
+    display:'flex',
+    alignItems:'center',
+    gap:10
+  }}>
+    <span style={{
+      fontSize:32,
+      fontWeight:800,
+      color:'#f97316'
+    }}>
+      {formatQAR(product.price)}
+    </span>
+
+    {product.compareAtPrice && product.compareAtPrice > product.price && (
+      <span style={{
+        background:'#dcfce7',
+        color:'#166534',
+        padding:'4px 10px',
+        borderRadius:20,
+        fontSize:12,
+        fontWeight:700
+      }}>
+        {language === 'AR'
+          ? `${Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}٪ خصم`
+          : `${Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)}% OFF`}
+      </span>
+    )}
+  </div>
+</div>
           </div>
           <p style={{fontSize:12, color:'#888', marginBottom:16}}>{t('inclVAT')}</p>
 
@@ -799,7 +1548,7 @@ function ProductDetail({ user, t = (k) => k }) {
             {[
               [t('condition'), cond.text],
               [t('inStock'), `${product.stockQty} ${t('units')}`],
-              [t('category'), product.category?.name],
+              [t('category'), catLabel(product.category?.name, language)],
             ].map(([label, val]) => (
               <div key={label} style={{display:'flex', justifyContent:'space-between', padding:'7px 0', borderBottom:'1px solid #f3f3f3', fontSize:14}}>
                 <span style={{color:'#888'}}>{label}</span>
@@ -1134,6 +1883,7 @@ function AdminDashboard({ t = (k) => k }) {
   const [subForm, setSubForm] = useState({ vendorId:'', type:'SETUP', amount:1000, note:'' })
   const [subMsg, setSubMsg] = useState('')
   const [kycVendors, setKycVendors] = useState([])
+  const [, setSelectedVendor] = useState(null)
 
   const loadData = async () => {
     setLoading(true)
@@ -1497,6 +2247,7 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
                   <p style={{fontWeight:700, fontSize:16}}>🏪 {vendor.storeName}</p>
                   <p style={{color:'#666', fontSize:13}}>{vendor.user?.name} · {vendor.user?.email}</p>
                   <p style={{color:'#aaa', fontSize:12}}>📞 {vendor.user?.phone || 'No phone'}</p>
+                  <p style={{ fontSize:13, color:'#666' }}> Banking: {vendor.ibanNumber ? 'Added' : 'Missing'}</p>
                   <p style={{fontSize:13, marginTop:6}}>
                     Registered: {new Date(vendor.createdAt).toLocaleDateString()}
                   </p>
@@ -1516,6 +2267,19 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
                       <button onClick={() => { const note = prompt('Rejection reason (optional):') || ''; handleVendorApproval(vendor.id, 'REJECTED', note) }} disabled={approvingId === vendor.id}
                         style={{padding:'8px 16px', background:'#ef4444', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600}}>
                         ✗ {t('reject')}
+                      </button>
+                      <button
+                      onClick={() => setSelectedVendor(vendor)}
+                      style={{
+                      padding:'8px 16px',
+                      background:'#2563eb',
+                      color:'#fff',
+                      border:'none',
+                      borderRadius:8,
+                      cursor:'pointer'
+                      }}
+                      >      
+                      View KYC
                       </button>
                     </div>
                   )}
@@ -1829,7 +2593,7 @@ const handleVendorApproval = async (vendorId, status, note = '') => {
 }
 
 
-function VendorDashboard({ t = (k) => k }) {
+function VendorDashboard({ t = (k) => k, language = 'EN' }) {
   const [store, setStore] = useState(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('products')
@@ -1854,6 +2618,8 @@ function VendorDashboard({ t = (k) => k }) {
   const [docFile, setDocFile] = useState(null)
   const [bankForm, setBankForm] = useState({ ibanNumber:'', bankName:'', accountHolderName:'', accountNumber:'', bankBranch:'' })
   const [bankMsg, setBankMsg] = useState('')
+  const [vendorOrders, setVendorOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
 
   const loadStore = () => {
     vendors.getMyStore().then(r => {
@@ -1873,7 +2639,7 @@ function VendorDashboard({ t = (k) => k }) {
   }
 
 const loadDocs = () => {
-  fetch('https://mobimart-backend-production.up.railway.app/api/vendors/documents', {
+  fetch('http://localhost:3000/api/vendors/documents', {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
   }).then(r => r.json()).then(data => {
     if (Array.isArray(data)) setDocs(data)
@@ -1889,6 +2655,16 @@ const loadDocs = () => {
   }
 
   useEffect(() => { loadStore(); loadEarnings(); loadDocs() }, []) // eslint-disable-line
+
+  // Load this vendor's orders when the Orders tab is opened
+  useEffect(() => {
+    if (tab === 'orders') {
+      setOrdersLoading(true)
+      orders.vendorOrders()
+        .then(r => { setVendorOrders(r.data || []); setOrdersLoading(false) })
+        .catch(() => setOrdersLoading(false))
+    }
+  }, [tab])
 
   useEffect(() => {
     products.getCategories().then(r => setCategories(r.data)).catch(() => {})
@@ -1921,7 +2697,7 @@ const loadDocs = () => {
       formData.append('document', docFile)
       formData.append('docType', docType)
       formData.append('docName', docFile.name)
-      const res = await fetch(`https://mobimart-backend-production.up.railway.app/api/vendors/documents/upload`, {
+      const res = await fetch('http://localhost:3000/api/vendors/documents/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: formData
@@ -1936,7 +2712,7 @@ const loadDocs = () => {
 
   const handleSaveBankDetails = async () => {
     try {
-      const res = await fetch('/api/vendors/bank-details', {
+      const res = await fetch('http://localhost:3000/api/vendors/bank-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify(bankForm)
@@ -1999,7 +2775,7 @@ const loadDocs = () => {
   if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
   // Show pending approval notice
-  if (store && store.status === 'PENDING') return (
+if (false && store && store.status === 'PENDING') return (
     <div style={{...styles.page, maxWidth:600, textAlign:'center', paddingTop:80}}>
       <div style={{fontSize:64, marginBottom:24}}>⏳</div>
       <h2 style={{fontSize:24, fontWeight:700, marginBottom:12, color:'#0f1923'}}>{t('pendingApproval')}</h2>
@@ -2022,9 +2798,16 @@ const loadDocs = () => {
   if (!store) return (
     <div style={{...styles.page, maxWidth:500}}>
       <h2 style={{marginBottom:24}}>{t('createStore')}</h2>
-      <CreateStore onCreated={loadStore} t={t} />
+      <CreateStore
+  onCreated={(nextTab) => {
+    loadStore()
+    if (nextTab) setTab(nextTab)
+  }}
+  t={t}
+/>
     </div>
-  )
+)
+
 
   const tabBtn = (key, label) => (
     <button onClick={() => { setTab(key); setMessage(''); setError('') }}
@@ -2068,11 +2851,13 @@ const loadDocs = () => {
 
       <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap'}}>
         {tabBtn('products', t('myProducts'))}
+        {tabBtn('orders', 'Orders')}
         {tabBtn('add', editingId ? t('editProduct') : t('addProduct'))}
         {tabBtn('bulk', t('bulkUpload'))}
         {tabBtn('documents', t('myDocuments'))}
         {tabBtn('banking', t('bankingDetails'))}
         {tabBtn('earnings', t('myEarnings'))}
+        {tabBtn('subscription', 'Subscription')}
       </div>
 
       {message && <div style={{background:'#d1fae5', color:'#065f46', padding:'12px 16px', borderRadius:8, marginBottom:16}}>{message}</div>}
@@ -2140,6 +2925,68 @@ const loadDocs = () => {
                         <button onClick={() => handleEdit(p)} style={{flex:1, padding:'8px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>{t('edit')}</button>
                         <button onClick={() => handleDelete(p.id)} style={{flex:1, padding:'8px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>{t('remove')}</button>
                       </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'orders' && (
+        <div>
+          <h3 style={{marginBottom:16}}>Orders for your products</h3>
+          {ordersLoading ? (
+            <p style={{color:'#64748b'}}>Loading orders…</p>
+          ) : vendorOrders.length === 0 ? (
+            <div style={{background:'#fff', borderRadius:12, padding:'40px 20px', textAlign:'center', color:'#64748b'}}>
+              No orders yet. When a customer buys one of your products, it will appear here.
+            </div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:12}}>
+              {vendorOrders.map(o => {
+                const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
+                const addr = o.shippingAddress || {}
+                return (
+                  <div key={o.id} style={{background:'#fff', border:'1px solid #eef0f3', borderRadius:12, padding:18}}>
+                    <div style={{display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom:10}}>
+                      <div>
+                        <div style={{fontWeight:700, color:'#0f1923'}}>Order #{o.id.slice(0,8).toUpperCase()}</div>
+                        <div style={{fontSize:12, color:'#94a3b8'}}>{new Date(o.createdAt).toLocaleString()}</div>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <span style={{fontWeight:700, color: statusColor[o.status] || '#64748b'}}>{o.status}</span>
+                        <div style={{fontSize:12, marginTop:2}}>
+                          {o.paid
+                            ? <span style={{color:'#16a34a', fontWeight:600}}>💳 Paid</span>
+                            : <span style={{color:'#92400e', fontWeight:600}}>💵 Cash on Delivery</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{borderTop:'1px solid #f1f5f9', paddingTop:10}}>
+                      {o.items.map((it, idx) => (
+                        <div key={idx} style={{display:'flex', justifyContent:'space-between', fontSize:14, marginBottom:4, color:'#0f1923'}}>
+                          <span>{it.name} × {it.quantity}</span>
+                          <span style={{fontWeight:600}}>{formatQAR(it.unitPrice * it.quantity)}</span>
+                        </div>
+                      ))}
+                      <div style={{display:'flex', justifyContent:'space-between', marginTop:8, paddingTop:8, borderTop:'1px dashed #e2e8f0'}}>
+                        <span style={{color:'#64748b', fontSize:13}}>Customer: {o.customerName}</span>
+                        <span style={{fontWeight:700, color:'#f97316'}}>{formatQAR(o.vendorTotal)}</span>
+                      </div>
+                    </div>
+                    <div style={{marginTop:10, padding:10, background:'#f8fafc', borderRadius:8, fontSize:12, color:'#475569', lineHeight:1.6}}>
+                      📍 {[
+                        addr.zone && `Zone ${addr.zone}`,
+                        addr.street && `Street ${addr.street}`,
+                        addr.building && `Building ${addr.building}`,
+                        addr.unit && `Unit ${addr.unit}`
+                      ].filter(Boolean).join(', ')}
+                      {addr.city ? `, ${addr.city}` : ''}
+                      {addr.phone ? ` · 📞 ${addr.phone}` : ''}
+                      {addr.preferredTime && addr.preferredTime !== 'any' ? ` · ⏰ ${addr.preferredTime}` : ''}
+                      {addr.deliveryNotes ? ` · 📝 ${addr.deliveryNotes}` : ''}
                     </div>
                   </div>
                 )
@@ -2294,6 +3141,159 @@ const loadDocs = () => {
         </div>
       )}
 
+{tab === 'subscription' && (
+  <div style={{
+    background:'#fff',
+    borderRadius:16,
+    padding:24,
+    boxShadow:'0 4px 12px rgba(0,0,0,0.06)'
+  }}>
+    
+    <h2 style={{ marginBottom:20 }}>Subscription Plan</h2>
+
+    {/* Current subscription status banner */}
+    <div style={{
+      display:'flex', alignItems:'center', gap:10, marginBottom:20,
+      padding:'12px 16px', borderRadius:12,
+      background: store?.subscriptionStatus === 'ACTIVE' ? '#dcfce7' : '#fef3c7',
+      border: store?.subscriptionStatus === 'ACTIVE' ? '1px solid #86efac' : '1px solid #fcd34d'
+    }}>
+      <span style={{ fontSize:20 }}>{store?.subscriptionStatus === 'ACTIVE' ? '✅' : '⚠️'}</span>
+      <div>
+        <div style={{ fontWeight:700, color: store?.subscriptionStatus === 'ACTIVE' ? '#166534' : '#92400e' }}>
+          {store?.subscriptionStatus === 'ACTIVE'
+            ? (language === 'AR' ? 'اشتراكك نشط' : 'Your subscription is active')
+            : (language === 'AR' ? 'اشتراكك غير مفعّل' : 'Your subscription is not active')}
+        </div>
+        {store?.subscriptionExpiry && store?.subscriptionStatus === 'ACTIVE' && (
+          <div style={{ fontSize:12, color:'#166534' }}>
+            {language === 'AR' ? 'ينتهي في: ' : 'Expires: '}
+            {new Date(store.subscriptionExpiry).toLocaleDateString()}
+          </div>
+        )}
+      </div>
+    </div>
+
+    <div style={{
+      display:'grid',
+      gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',
+      gap:16,
+      marginBottom:24
+    }}>
+      
+      <div style={{
+        border:'2px solid #f97316',
+        borderRadius:14,
+        padding:20
+      }}>
+        <h3>Monthly Plan</h3>
+        <p style={{ fontSize:28, fontWeight:700 }}>QAR 1,000</p>
+        <div style={{ marginTop:8, color:'#666' }}>
+        <div>One-time Registration Fee</div>
+        <div>QAR 250 monthly recurring fee</div>
+        <div>Due between 1st-7th every month</div>
+        </div>
+
+
+        <button
+          onClick={async () => {
+            try {
+              setMessage(''); setError('')
+              const r = await payments.vendorSubscription({
+                amount: 5, // KWD test amount (sandbox). Change to real amount for QAR go-live.
+                vendorId: store.id,
+                subscriptionType: 'MONTHLY'
+              })
+              if (r.data.paymentUrl) {
+                window.location = r.data.paymentUrl
+              } else {
+                setError('Could not start payment. Please try again.')
+              }
+            } catch (e) {
+              setError('Payment could not be started. Please try again.')
+            }
+          }}
+          style={{
+            marginTop:16,
+            width:'100%',
+            padding:'12px',
+            border:'none',
+            borderRadius:10,
+            background:'#f97316',
+            color:'#fff',
+            fontWeight:700,
+            cursor:'pointer'
+          }}
+        >
+          {language === 'AR' ? 'اشترك شهرياً' : 'Pay Monthly'}
+        </button>
+      </div>
+
+      <div style={{
+        border:'2px solid #10b981',
+        borderRadius:14,
+        padding:20
+      }}>
+        <h3>Yearly Plan</h3>
+        <p style={{ fontSize:28, fontWeight:700 }}>QAR 500</p>
+        <div style={{ marginTop:8, color:'#666' }}>
+        <div>Annual Renewal Fee</div>
+        <div>Due between 1st-7th January every year</div>
+        </div>
+
+        <button
+          onClick={async () => {
+            try {
+              setMessage(''); setError('')
+              const r = await payments.vendorSubscription({
+                amount: 5, // KWD test amount (sandbox). Change to real amount for QAR go-live.
+                vendorId: store.id,
+                subscriptionType: 'ANNUAL'
+              })
+              if (r.data.paymentUrl) {
+                window.location = r.data.paymentUrl
+              } else {
+                setError('Could not start payment. Please try again.')
+              }
+            } catch (e) {
+              setError('Payment could not be started. Please try again.')
+            }
+          }}
+          style={{
+            marginTop:16,
+            width:'100%',
+            padding:'12px',
+            border:'none',
+            borderRadius:10,
+            background:'#10b981',
+            color:'#fff',
+            fontWeight:700,
+            cursor:'pointer'
+          }}
+        >
+          {language === 'AR' ? 'اشترك سنوياً' : 'Pay Yearly'}
+        </button>
+      </div>
+
+    </div>
+
+    <div style={{
+      background:'#fff7ed',
+      padding:16,
+      borderRadius:12,
+      border:'1px solid #fdba74'
+    }}>
+      Admin can apply:
+      <ul>
+        <li>0% discount</li>
+        <li>25% discount</li>
+        <li>50% discount</li>
+        <li>100% free onboarding</li>
+      </ul>
+    </div>
+
+  </div>
+)}
       {tab === 'earnings' && (
         <div>
           {earnings ? (
@@ -2396,7 +3396,7 @@ function CreateStore({ onCreated, t = (k) => k }) {
     setSaving(true)
     try {
       await vendors.createStore(form)
-      onCreated()
+      onCreated('documents')
     } catch (err) {
       setError(err.response?.data?.error || t('createStoreFailed'))
       setSaving(false)
@@ -2428,8 +3428,33 @@ function App() {
     }
     localStorage.setItem('language', language)
   }, [language])
+
+  // Theme (light / dark)
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light')
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
+  const toggleTheme = () => setTheme(theme === 'light' ? 'dark' : 'light')
+
+  // Cart drawer
+  const [cartOpen, setCartOpen] = useState(false)
   const [user, setUser] = useState(null)
   const [cartCount, setCartCount] = useState(0) // eslint-disable-line
+  const [wishlist, setWishlist] = useState(
+  JSON.parse(localStorage.getItem('wishlist') || '[]')
+)
+
+const toggleWishlist = (productId) => {
+  setWishlist(prev =>
+    prev.includes(productId)
+      ? prev.filter(id => id !== productId)
+      : [...prev, productId]
+  )
+}
+useEffect(() => {
+  localStorage.setItem('wishlist', JSON.stringify(wishlist))
+}, [wishlist])
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -2449,6 +3474,16 @@ function App() {
     }
   }, [user])
 
+  // Listen for cart updates fired from Quick View (and anywhere else that
+  // dispatches 'jaspr-cart-updated') so the navbar badge stays in sync.
+  useEffect(() => {
+    const handler = (e) => {
+      if (typeof e.detail === 'number') setCartCount(e.detail)
+    }
+    window.addEventListener('jaspr-cart-updated', handler)
+    return () => window.removeEventListener('jaspr-cart-updated', handler)
+  }, [])
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     setUser(null)
@@ -2458,18 +3493,33 @@ function App() {
   return (
     <BrowserRouter>
     <ScrollToTop />
-      <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} language={language} setLanguage={setLanguage} t={t} />
+      <Navbar user={user} cartCount={cartCount} onLogout={handleLogout} language={language} setLanguage={setLanguage} t={t} theme={theme} toggleTheme={toggleTheme} onCartClick={() => setCartOpen(true)} />
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} t={t} onCartUpdate={setCartCount} language={language} />
       <Routes>
         <Route path="/" element={<Home t={t} language={language} />} />
-        <Route path="/products" element={<Products t={t} language={language} />} />
-        <Route path="/products/:id" element={<ProductDetail user={user} t={t} />} />
+        <Route path="/products" element={<Products t={t} language={language} wishlist={wishlist} toggleWishlist={toggleWishlist} /> } />
+        <Route
+  path="/wishlist"
+  element={
+    <Products
+      t={t}
+      language={language}
+      wishlist={wishlist}
+      toggleWishlist={toggleWishlist}
+      wishlistOnly={true}
+    />
+  }
+/>
+        <Route path="/products/:id" element={<ProductDetail user={user} t={t} language={language} />} />
         <Route path="/login" element={<Login onLogin={setUser} t={t} />} />
         <Route path="/register" element={<Register onLogin={setUser} t={t} />} />
         <Route path="/cart" element={<Cart onCartUpdate={setCartCount} t={t} />} />
-        <Route path="/checkout" element={<Checkout t={t} />} />
+        <Route path="/payment-success" element={<PaymentSuccess t={t} language={language} />} />
+        <Route path="/payment-failed" element={<PaymentFailed t={t} language={language} />} />
+        <Route path="/checkout" element={<Checkout t={t} language={language} />} />
         <Route path="/orders" element={<Orders user={user} t={t} />} />
         <Route path="/orders/:id" element={<OrderDetail t={t} />} />
-        <Route path="/vendor" element={<VendorDashboard t={t} />} />
+        <Route path="/vendor" element={<VendorDashboard t={t} language={language} />} />
         <Route path="/admin" element={<AdminDashboard t={t} />} />
         <Route path="/terms" element={<Terms t={t} language={language} />} />
         <Route path="/privacy" element={<Privacy t={t} language={language} />} />
@@ -2480,8 +3530,420 @@ function App() {
         <Route path="/vendor-policy" element={<VendorPolicy language={language} />} />
         <Route path="/account-deletion" element={<AccountDeletionPolicy language={language} />} />
       </Routes>
+      <MobileBottomNav cartCount={cartCount} t={t} />
       <SiteFooter t={t} language={language} />
     </BrowserRouter>
+  )
+}
+
+function MobileBottomNav({ cartCount = 0, t = (k) => k }) {
+  return (
+    <div
+      style={{
+        position:'fixed',
+        bottom:0,
+        left:0,
+        right:0,
+        height:68,
+        background:'#0f1923',
+        display:'flex',
+        justifyContent:'space-around',
+        alignItems:'center',
+        zIndex:9999,
+        borderTop:'1px solid rgba(255,255,255,0.08)',
+        boxShadow:'0 -4px 20px rgba(0,0,0,0.12)'
+      }}
+    >
+      <Link
+        to="/"
+        style={{
+          color:'#fff',
+          textDecoration:'none',
+          fontSize:12,
+          display:'flex',
+          flexDirection:'column',
+          alignItems:'center',
+          gap:4
+        }}
+      >
+        <span style={{fontSize:20}}>🏠</span>
+        {t('home')}
+      </Link>
+
+      <Link
+        to="/wishlist"
+        style={{
+          color:'#fff',
+          textDecoration:'none',
+          fontSize:12,
+          display:'flex',
+          flexDirection:'column',
+          alignItems:'center',
+          gap:4
+        }}
+      >
+        <span style={{fontSize:20}}>❤️</span>
+        {t('wishlist')}
+      </Link>
+
+      <Link
+        to="/cart"
+        style={{
+          color:'#fff',
+          textDecoration:'none',
+          fontSize:12,
+          display:'flex',
+          flexDirection:'column',
+          alignItems:'center',
+          gap:4,
+          position:'relative'
+        }}
+      >
+        <span style={{fontSize:20}}>🛒</span>
+
+        {cartCount > 0 && (
+          <span
+            style={{
+              position:'absolute',
+              top:-2,
+              right:-10,
+              background:'#f97316',
+              color:'#fff',
+              borderRadius:'50%',
+              minWidth:18,
+              height:18,
+              fontSize:10,
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              fontWeight:700
+            }}
+          >
+            {cartCount}
+          </span>
+        )}
+
+        {t('cart')}
+      </Link>
+
+      <Link
+        to="/orders"
+        style={{
+          color:'#fff',
+          textDecoration:'none',
+          fontSize:12,
+          display:'flex',
+          flexDirection:'column',
+          alignItems:'center',
+          gap:4
+        }}
+      >
+        <span style={{fontSize:20}}>📦</span>
+        {t('myOrders')}
+      </Link>
+
+      <Link
+        to="/vendor"
+        style={{
+          color:'#fff',
+          textDecoration:'none',
+          fontSize:12,
+          display:'flex',
+          flexDirection:'column',
+          alignItems:'center',
+          gap:4
+        }}
+      >
+        <span style={{fontSize:20}}>👤</span>
+        {t('account')}
+      </Link>
+    </div>
+  )
+}
+
+function ProductSkeleton() {
+  return (
+    <div className="jm-card" style={{border:'1px solid #eef0f3', borderRadius:24, overflow:'hidden', background:'#fff', boxShadow:'0 10px 30px rgba(15,25,35,0.08)', display:'flex', flexDirection:'column', height:500}}>
+      <div className="jm-skel" style={{height:210, borderRadius:0}} />
+      <div style={{padding:'14px 16px', display:'flex', flexDirection:'column', flex:1, gap:10}}>
+        <div className="jm-skel" style={{height:10, width:'40%'}} />
+        <div className="jm-skel" style={{height:16, width:'85%'}} />
+        <div className="jm-skel" style={{height:16, width:'70%'}} />
+        <div style={{display:'flex', gap:6}}>
+          <div className="jm-skel" style={{height:20, width:50, borderRadius:20}} />
+          <div className="jm-skel" style={{height:20, width:80, borderRadius:20}} />
+        </div>
+        <div className="jm-skel" style={{height:12, width:'30%'}} />
+        <div className="jm-skel" style={{height:24, width:'55%'}} />
+        <div style={{marginTop:'auto', display:'flex', flexDirection:'column', gap:8}}>
+          <div className="jm-skel" style={{height:36, borderRadius:12}} />
+          <div className="jm-skel" style={{height:36, borderRadius:10}} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecentlyViewedStrip({ items = [], t = (k) => k }) {
+  const [ids, setIds] = useState([])
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('recentlyViewed') || '[]'
+      setIds(JSON.parse(raw))
+    } catch (e) { setIds([]) }
+  }, [])
+  // Match against the products already loaded; that way no extra API call
+  // and we silently drop stale ids (deleted products, etc).
+  const matched = ids.map(id => items.find(p => p.id === id)).filter(Boolean)
+  if (matched.length === 0) return null
+  return (
+    <div className="jm-card" style={{marginBottom:24, padding:'16px 20px', background:'#fff', borderRadius:16, border:'1px solid #eef0f3', boxShadow:'0 4px 14px rgba(15,25,35,0.05)'}}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12}}>
+        <h4 className="jm-card-title" style={{margin:0, fontSize:14, fontWeight:700, color:'#0f1923', textTransform:'uppercase', letterSpacing:0.5}}>
+          {t('recentlyViewed')}
+        </h4>
+        <button
+          onClick={() => { localStorage.removeItem('recentlyViewed'); setIds([]) }}
+          style={{background:'none', border:'none', color:'#94a3b8', fontSize:12, cursor:'pointer'}}
+          aria-label="Clear recently viewed"
+        >
+          {t('clear')}
+        </button>
+      </div>
+      <div style={{display:'flex', gap:14, overflowX:'auto', paddingBottom:6}}>
+        {matched.map(p => {
+          const img = p.images?.[0]
+          const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+          return (
+            <Link
+              key={p.id}
+              to={`/products/${p.id}`}
+              style={{flex:'0 0 110px', textDecoration:'none', color:'inherit'}}
+            >
+              <div className="jm-card-img" style={{width:110, height:110, borderRadius:12, background:'#f8fafc', border:'1px solid #eef0f3', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', marginBottom:6}}>
+                {src ? (
+                  <img src={src} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} />
+                ) : (
+                  <span style={{fontSize:36}}>📱</span>
+                )}
+              </div>
+              <div className="jm-card-title" style={{fontSize:11, fontWeight:600, color:'#0f1923', lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical'}}>
+                {p.name}
+              </div>
+              <div style={{fontSize:11, color:'#f97316', fontWeight:700, marginTop:2}}>
+                {formatQAR(p.price)}
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function CartDrawer({ open, onClose, t = (k) => k, onCartUpdate, language = 'EN' }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setLoading(true)
+    cart.get()
+      .then(r => { setItems(r.data.items || []); setLoading(false) })
+      .catch(() => { setItems([]); setLoading(false) })
+  }, [open])
+
+  const updateQty = async (productId, newQty) => {
+    if (newQty < 1) return
+    try {
+      await cart.update(productId, { quantity: newQty })
+      const r = await cart.get()
+      setItems(r.data.items || [])
+      onCartUpdate && onCartUpdate(r.data.items.reduce((s, i) => s + i.quantity, 0))
+    } catch (e) {}
+  }
+
+  const removeItem = async (productId) => {
+    try {
+      await cart.remove(productId)
+      const r = await cart.get()
+      setItems(r.data.items || [])
+      onCartUpdate && onCartUpdate(r.data.items.reduce((s, i) => s + i.quantity, 0))
+    } catch (e) {}
+  }
+
+  const total = items.reduce((s, i) => s + (i.product?.price || 0) * i.quantity, 0)
+  const itemCount = items.reduce((s, i) => s + i.quantity, 0)
+  const sideStyle = language === 'AR'
+    ? { left: 0, transform: open ? 'translateX(0)' : 'translateX(-100%)', borderRight: '1px solid #eef0f3' }
+    : { right: 0, transform: open ? 'translateX(0)' : 'translateX(100%)', borderLeft: '1px solid #eef0f3' }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position:'fixed', inset:0, background:'rgba(15,25,35,0.45)',
+          opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none',
+          transition:'opacity 0.25s', zIndex: 9998
+        }}
+      />
+      {/* Drawer */}
+      <div
+        style={{
+          position:'fixed', top:0, height:'100dvh', width:380, maxWidth:'92vw',
+          background:'#fff', boxShadow:'-12px 0 40px rgba(0,0,0,0.18)',
+          transition:'transform 0.28s ease', zIndex:9999,
+          display:'flex', flexDirection:'column', ...sideStyle
+        }}
+      >
+        {/* Header */}
+        <div style={{padding:'18px 20px', borderBottom:'1px solid #eef0f3', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0}}>
+          <div>
+            <div style={{fontSize:16, fontWeight:700, color:'#0f1923'}}>{t('yourCart')}</div>
+            <div style={{fontSize:12, color:'#94a3b8'}}>{itemCount} {itemCount === 1 ? 'item' : 'items'}</div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{background:'none', border:'none', fontSize:24, cursor:'pointer', color:'#64748b', padding:4, lineHeight:1}}
+            aria-label="Close cart"
+          >×</button>
+        </div>
+
+        {/* Items */}
+        <div style={{flex:1, overflowY:'auto', padding:'12px 20px'}}>
+          {loading ? (
+            <div style={{padding:'40px 0', textAlign:'center', color:'#94a3b8', fontSize:13}}>{t('loading')}</div>
+          ) : items.length === 0 ? (
+            <div style={{padding:'60px 20px', textAlign:'center'}}>
+              <div style={{fontSize:48, marginBottom:12}}>🛒</div>
+              <div style={{fontSize:15, fontWeight:600, color:'#0f1923', marginBottom:6}}>{t('cartEmpty')}</div>
+              <div style={{fontSize:12, color:'#94a3b8'}}>Browse products to add something here.</div>
+            </div>
+          ) : items.map(i => {
+            const img = i.product?.images?.[0]
+            const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+            return (
+              <div key={i.productId || i.product?.id} style={{display:'flex', gap:12, padding:'12px 0', borderBottom:'1px solid #f1f5f9'}}>
+                <div className="jm-card-img" style={{width:64, height:64, borderRadius:10, background:'#f8fafc', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0}}>
+                  {src ? <img src={src} alt="" style={{width:'100%', height:'100%', objectFit:'contain'}} /> : <span style={{fontSize:24}}>📱</span>}
+                </div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13, fontWeight:600, color:'#0f1923', marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                    {i.product?.name}
+                  </div>
+                  <div style={{fontSize:13, fontWeight:700, color:'#f97316', marginBottom:6}}>{formatQAR(i.product?.price || 0)}</div>
+                  <div style={{display:'flex', alignItems:'center', gap:6}}>
+                    <button onClick={() => updateQty(i.productId || i.product?.id, i.quantity - 1)} style={{width:26, height:26, border:'1px solid #e2e8f0', background:'#fff', borderRadius:6, cursor:'pointer', fontWeight:600}}>−</button>
+                    <span style={{fontSize:13, fontWeight:600, minWidth:24, textAlign:'center'}}>{i.quantity}</span>
+                    <button onClick={() => updateQty(i.productId || i.product?.id, i.quantity + 1)} style={{width:26, height:26, border:'1px solid #e2e8f0', background:'#fff', borderRadius:6, cursor:'pointer', fontWeight:600}}>+</button>
+                    <button onClick={() => removeItem(i.productId || i.product?.id)} style={{marginLeft:'auto', background:'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:12}} aria-label="Remove">{t('remove') || 'Remove'}</button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        {items.length > 0 && (
+          <div style={{padding:'16px 20px', borderTop:'1px solid #eef0f3', background:'#fff', flexShrink:0}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+              <span style={{fontSize:14, fontWeight:600, color:'#0f1923'}}>{t('total')}</span>
+              <span style={{fontSize:18, fontWeight:800, color:'#f97316'}}>{formatQAR(total)}</span>
+            </div>
+            <Link
+              to="/checkout"
+              onClick={onClose}
+              style={{display:'block', textAlign:'center', background:'#f97316', color:'#fff', padding:'12px 16px', borderRadius:10, textDecoration:'none', fontWeight:700, fontSize:14, marginBottom:8}}
+            >
+              {t('proceedToCheckout')}
+            </Link>
+            <Link
+              to="/cart"
+              onClick={onClose}
+              style={{display:'block', textAlign:'center', background:'#fff', color:'#0f1923', padding:'10px 16px', borderRadius:10, textDecoration:'none', fontWeight:600, fontSize:13, border:'1px solid #e2e8f0'}}
+            >
+              View full cart
+            </Link>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+function RecommendedForYou({ items = [], t = (k) => k }) {
+  const [viewedIds, setViewedIds] = useState([])
+  useEffect(() => {
+    try { setViewedIds(JSON.parse(localStorage.getItem('recentlyViewed') || '[]')) }
+    catch (e) { setViewedIds([]) }
+  }, [])
+
+  // Recommendation logic:
+  //  1. Collect categories of recently-viewed products.
+  //  2. Suggest products in those categories that the user has NOT already viewed.
+  //  3. If no viewing history (or no matches), fall back to highest-rated products.
+  let recs = []
+  if (viewedIds.length > 0 && items.length > 0) {
+    const viewed = viewedIds.map(id => items.find(p => p.id === id)).filter(Boolean)
+    const preferredCategories = new Set(viewed.map(p => p.category?.name).filter(Boolean))
+    recs = items
+      .filter(p => !viewedIds.includes(p.id))
+      .filter(p => preferredCategories.has(p.category?.name))
+      .slice(0, 6)
+  }
+  if (recs.length < 4) {
+    // top up with highest-rated products not already in recs and not viewed
+    const used = new Set([...viewedIds, ...recs.map(r => r.id)])
+    const fillers = items
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0))
+      .slice(0, 6 - recs.length)
+    recs = [...recs, ...fillers]
+  }
+  if (recs.length === 0) return null
+
+  return (
+    <div className="jm-card" style={{marginBottom:24, padding:'18px 20px', background:'#fff', borderRadius:16, border:'1px solid #eef0f3', boxShadow:'0 4px 14px rgba(15,25,35,0.05)'}}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+        <h4 className="jm-card-title" style={{margin:0, fontSize:14, fontWeight:700, color:'#0f1923', textTransform:'uppercase', letterSpacing:0.5, display:'flex', alignItems:'center', gap:8}}>
+          <span style={{fontSize:18}}>✨</span>
+          {t('recommendedForYou')}
+        </h4>
+        {viewedIds.length === 0 && (
+          <span className="jm-card-meta" style={{fontSize:11, color:'#94a3b8'}}>{t('topRated')}</span>
+        )}
+      </div>
+      <div style={{display:'flex', gap:14, overflowX:'auto', paddingBottom:6}}>
+        {recs.map(p => {
+          const img = p.images?.[0]
+          const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+          return (
+            <Link
+              key={p.id}
+              to={`/products/${p.id}`}
+              style={{flex:'0 0 140px', textDecoration:'none', color:'inherit'}}
+            >
+              <div className="jm-card-img" style={{width:140, height:140, borderRadius:12, background:'linear-gradient(180deg,#f8fafc,#eef2f7)', border:'1px solid #eef0f3', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', marginBottom:8, padding:8}}>
+                {src ? (
+                  <img src={src} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} />
+                ) : (
+                  <span style={{fontSize:40}}>📱</span>
+                )}
+              </div>
+              <div className="jm-card-title" style={{fontSize:12, fontWeight:600, color:'#0f1923', lineHeight:1.3, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', minHeight:32}}>
+                {p.name}
+              </div>
+              <div style={{fontSize:13, color:'#f97316', fontWeight:800}}>
+                {formatQAR(p.price)}
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

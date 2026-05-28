@@ -1,13 +1,207 @@
+/* ============================================================
+   JASPR Market — Theme system v4
+   Uses className hooks (.jm-*) instead of attribute selectors,
+   because the browser normalizes inline-style attribute strings
+   (e.g. #fff -> rgb(255,255,255)) which broke string matching.
+   ============================================================ */
+
+:root {
+  --jm-bg:           #f8f9fa;
+  --jm-surface:      #ffffff;
+  --jm-surface-2:    #f1f5f9;
+  --jm-border:       #eef0f3;
+  --jm-border-strong:#dfe3e8;
+
+  --jm-text:         #0f1923;
+  --jm-text-muted:   #64748b;
+  --jm-text-soft:    #94a3b8;
+
+  --jm-accent:       #f97316;
+  --jm-nav:          #0f1923;
+
+  --jm-skel-base:    #e2e8f0;
+  --jm-skel-shine:   #f1f5f9;
+}
+
+html[data-theme="dark"] {
+  --jm-bg:           #0b1220;
+  --jm-surface:      #131c2e;
+  --jm-surface-2:    #1a2438;
+  --jm-border:       #243047;
+  --jm-border-strong:#2f3d5a;
+
+  --jm-text:         #f1f5f9;
+  --jm-text-muted:   #cbd5e1;
+  --jm-text-soft:    #94a3b8;
+
+  --jm-nav:          #060b16;
+  --jm-skel-base:    #1a2438;
+  --jm-skel-shine:   #243047;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--jm-bg);
+  color: var(--jm-text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+html[data-theme="dark"] body {
+  background: var(--jm-bg) !important;
+  color: var(--jm-text);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Skeleton shimmer */
+@keyframes jm-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.jm-skel {
+  background: linear-gradient(
+    90deg,
+    var(--jm-skel-base) 0%,
+    var(--jm-skel-shine) 50%,
+    var(--jm-skel-base) 100%
+  ) !important;
+  background-size: 800px 100% !important;
+  animation: jm-shimmer 1.4s linear infinite;
+  border-radius: 8px;
+}
+
+/* =====================================================
+   DARK MODE OVERRIDES — class-based, so they reliably win
+   over inline styles when paired with !important.
+   ===================================================== */
+
+/* Page wrapper — the full-page light background */
+html[data-theme="dark"] .jm-page {
+  background: var(--jm-bg) !important;
+  color: var(--jm-text);
+}
+
+/* Card surfaces (product cards, recently-viewed strip, modals) */
+html[data-theme="dark"] .jm-card {
+  background: var(--jm-surface) !important;
+  border-color: var(--jm-border-strong) !important;
+  color: var(--jm-text);
+}
+
+/* Product card image tile — the light gradient becomes dark */
+html[data-theme="dark"] .jm-card-img {
+  background: linear-gradient(180deg, var(--jm-surface-2), var(--jm-bg)) !important;
+  border-color: var(--jm-border-strong) !important;
+}
+
+/* Card text content area */
+html[data-theme="dark"] .jm-card-body {
+  background: var(--jm-surface) !important;
+  color: var(--jm-text) !important;
+}
+
+/* Card titles and metadata */
+html[data-theme="dark"] .jm-card-title,
+html[data-theme="dark"] .jm-card-title * {
+  color: var(--jm-text) !important;
+}
+
+html[data-theme="dark"] .jm-card-meta,
+html[data-theme="dark"] .jm-card-meta * {
+  color: var(--jm-text-muted) !important;
+}
+
+/* Form controls */
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background: var(--jm-surface-2) !important;
+  color: var(--jm-text) !important;
+  border-color: var(--jm-border-strong) !important;
+}
+
+html[data-theme="dark"] input::placeholder {
+  color: var(--jm-text-soft) !important;
+}
+
+/* =====================================================
+   BATCH 2 — Smart filter sidebar layout
+   ===================================================== */
+
+/* Mobile-first: stacked (filters on top, grid below) */
+.jm-shop-layout {
+  display: block;
+}
+.jm-shop-filters {
+  display: block;
+  margin-bottom: 16px;
+}
+.jm-shop-main {
+  display: block;
+  min-width: 0; /* prevent grid blowout */
+}
+
+/* Desktop: side-by-side */
+@media (min-width: 880px) {
+  .jm-shop-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  .jm-shop-filters {
+    position: sticky;
+    top: 80px;
+    margin-bottom: 0;
+    padding: 18px;
+    background: var(--jm-surface);
+    border: 1px solid var(--jm-border);
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(15,25,35,0.05);
+  }
+  /* Make filter selects fill the sidebar width */
+  .jm-shop-filters > div:first-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .jm-shop-filters select,
+  .jm-shop-filters input[type="number"] {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  /* The "to" separator between min/max becomes its own line */
+  .jm-shop-filters > div:first-child > span {
+    display: none;
+  }
+  .jm-shop-filters > div:first-child > span:last-child {
+    display: block;
+    margin: 6px 0 0 0 !important;
+    font-size: 12px !important;
+    text-align: center;
+    color: var(--jm-text-muted) !important;
+  }
+  /* Category chip row inside sidebar — wrap nicely */
+  .jm-shop-filters > div:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Dark mode tweaks for new components */
+html[data-theme="dark"] .jm-shop-filters {
+  background: var(--jm-surface) !important;
+  border-color: var(--jm-border-strong) !important;
+}
+
+/* Filter chip buttons that use light grey background -> respect theme */
+html[data-theme="dark"] .jm-shop-filters button[style*="background"][style*="f8f9fa"] {
+  background: var(--jm-surface-2) !important;
+  color: var(--jm-text) !important;
 }
