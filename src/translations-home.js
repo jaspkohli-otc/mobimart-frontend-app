@@ -27,8 +27,8 @@ const homeEN = {
 
   // Hero section
   homeHeroEyebrow: "Qatar's Smart Marketplace",
-  homeHeroTitle: "Qatar's Marketplace for Everything You Need",
-  homeHeroSub: "Shop electronics, fashion, home essentials, beauty products, groceries and more from trusted sellers across Qatar — fast delivery with real customer support.",
+  homeHeroTitle: "Everything Qatar Needs, One Marketplace",
+  homeHeroSub: "Discover trusted sellers, exclusive deals, and fast delivery across Qatar — everything you need in one marketplace",
 
   // Trust pills inside hero
   homeTrustVerified: "Verified Sellers",
@@ -63,7 +63,7 @@ const homeEN = {
   homeTrustStripDeliverySub:   "Same day in Doha",
 
   // Category section
-  homeCategoryTitle:   "Shop by Category",
+  homeCategoryTitle:   "Browse Top Categories",
   homeViewAllCats:     "View all categories",
   homeCatMobiles:      "Mobile Phones",
   homeCatLaptops:      "Laptops",
@@ -93,8 +93,8 @@ const homeAR = {
 
   // Hero section
   homeHeroEyebrow: "السوق رقم 1 للجوالات في قطر",
-  homeHeroTitle:   "سوق قطر للجوالات وأجهزة اللابتوب والإكسسوارات التقنية",
-  homeHeroSub:     "هواتف وأجهزة لابتوب وأجهزة لوحية وإكسسوارات جديدة ومستعملة من بائعين موثوقين في جميع أنحاء قطر — توصيل سريع ودعم عملاء حقيقي.",
+  homeHeroTitle:   "كل ما تحتاجه قطر في سوق واحد",
+  homeHeroSub:     "اكتشف بائعين موثوقين، وعروضاً حصرية، وتوصيلاً سريعاً في جميع أنحاء قطر — كل ما تحتاجه في سوق واحد.",
 
   // Trust pills inside hero
   homeTrustVerified: "بائعون موثوقون",
@@ -129,7 +129,7 @@ const homeAR = {
   homeTrustStripDeliverySub:   "في نفس اليوم بالدوحة",
 
   // Category section
-  homeCategoryTitle:   "تسوق حسب الفئة",
+  homeCategoryTitle:   "استكشف الفئات الرائجة",
   homeViewAllCats:     "عرض جميع الفئات",
   homeCatMobiles:      "الهواتف المحمولة",
   homeCatLaptops:      "أجهزة اللابتوب",

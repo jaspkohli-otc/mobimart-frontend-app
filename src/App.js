@@ -15,7 +15,57 @@ import VendorPolicy from './pages/VendorPolicy'
 import AccountDeletionPolicy from './pages/AccountDeletionPolicy'
 import SiteFooter from './components/SiteFooter'
 import ScrollToTop from './components/ScrollToTop'
+import { Browser } from '@capacitor/browser';
+import { App as CapApp } from '@capacitor/app';
 const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
+const API_ORIGIN = 'https://mobimart-backend-production.up.railway.app'
+
+// Fallback used when a product has no image URL OR when the image fails to load.
+// Uses an inline SVG data URI so it ALWAYS renders even with no network,
+// blocked external images, or Android WebView CORS restrictions.
+const FALLBACK_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">' +
+  '<rect width="300" height="300" fill="#0f1923"/>' +
+  '<text x="150" y="140" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="#f97316" text-anchor="middle">JASPR</text>' +
+  '<text x="150" y="175" font-family="Arial,sans-serif" font-size="20" font-weight="600" fill="#cbd5e1" text-anchor="middle">Market</text>' +
+  '<text x="150" y="210" font-family="Arial,sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">Image unavailable</text>' +
+  '</svg>'
+)
+
+const getImageSrc = (img) => {
+  if (!img) return null
+
+  let value = img
+  if (Array.isArray(value)) value = value[0]
+  if (value && typeof value === 'object') {
+    // Some APIs wrap images in objects like { url: '...' } or { src: '...' }
+    value = value.url || value.src || value.path || null
+  }
+  if (typeof value !== 'string') return null
+
+  value = value.trim()
+  if (!value) return null
+
+  // Some APIs can return JSON-stringified image arrays.
+  if (value.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(value)
+      return getImageSrc(parsed?.[0])
+    } catch (e) {}
+  }
+
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  if (value.startsWith('//')) return `https:${value}`
+  if (value.startsWith('/')) return `${API_ORIGIN}${value}`
+  return `${API_ORIGIN}/${value}`
+}
+
+const getProductImageSrc = (product, index = 0) => {
+  if (!product) return null
+  const imgs = product.images
+  if (Array.isArray(imgs)) return getImageSrc(imgs[index])
+  return getImageSrc(imgs)
+}
 
 const conditionLabel = (c, lang = 'EN') => {
   const ar = lang === 'AR'
@@ -55,48 +105,221 @@ const catLabel = (name, lang = 'EN') => {
 }
 
 function Navbar({ user, cartCount, onLogout, language, setLanguage, t, theme = 'light', toggleTheme = () => {}, onCartClick = null }) {
+  const navigate = useNavigate()
+  const isMobile = window.innerWidth <= 768
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [navCategories, setNavCategories] = React.useState([])
+  const [catExpanded, setCatExpanded] = React.useState(false)
+
+  React.useEffect(() => {
+    products.getCategories()
+      .then(r => {
+        const list = Array.isArray(r.data) ? r.data : []
+        // Only parent categories (no parentId) for the menu
+        const parents = list.filter(c => !c.parentId)
+        setNavCategories(parents.length > 0 ? parents : list.slice(0, 14))
+      })
+      .catch(() => {})
+  }, [])
+
+  const closeMobileMenu = () => { setMobileMenuOpen(false); setCatExpanded(false) }
+
   return (
-    <nav style={styles.nav}>
-      <Link to="/" style={styles.logo}>
-        JASPR <span style={{color:'#f97316'}}>Market</span>
-        <span style={{fontSize:11, color:'#94a3b8', fontWeight:400, marginLeft:8}}>by JASPR Trading</span>
+    <nav style={isMobile ? styles.navMobile : styles.nav}>
+      <Link to="/" style={isMobile ? styles.logoMobile : styles.logo} onClick={closeMobileMenu}>
+        JASPR <span style={{ color:'#f97316' }}>Market</span>
       </Link>
-      <div style={styles.navLinks}>
-        <Link to="/products" style={styles.navLink}>{t('shop')}</Link>
-        {user ? (
-          <>
-            {user.role === 'ADMIN' && <Link to="/admin" style={{...styles.navLink, color:'#f97316'}}>{t('admin')}</Link>}
-            {user.role === 'VENDOR' && <Link to="/vendor" style={styles.navLink}>{t('myStore')}</Link>}
-            <Link to="/wishlist" style={styles.navLink}>Wishlist</Link>
-            {onCartClick ? (
-              <button
-                onClick={onCartClick}
-                style={{...styles.navLink, background:'none', border:'none', cursor:'pointer', fontSize:14, padding:0, fontFamily:'inherit'}}
-              >
-                {t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
-              </button>
-            ) : (
-              <Link to="/cart" style={styles.navLink}>{t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}</Link>
-            )}
-            <Link to="/orders" style={styles.navLink}>{t('myOrders')}</Link>
-            <button onClick={onLogout} style={styles.logoutBtn}>{t('logout')}</button>
-          </>
-        ) : (
-          <>
-            <Link to="/login" style={styles.navLink}>{t('login')}</Link>
-            <Link to="/register" style={styles.registerBtn}>{t('register')}</Link>
-          </>
+
+      {!isMobile && (
+        <div style={styles.navLinks}>
+          <Link to="/products" style={styles.navLink}>{t('shop')}</Link>
+
+          {user ? (
+            <>
+              {user.role === 'ADMIN' && (
+                <Link to="/admin" style={{ ...styles.navLink, color:'#f97316' }}>
+                  {t('admin')}
+                </Link>
+              )}
+
+              {user.role === 'VENDOR' && (
+                <Link to="/vendor" style={styles.navLink}>
+                  {t('myStore')}
+                </Link>
+              )}
+
+              <Link to="/wishlist" style={styles.navLink}>Wishlist</Link>
+
+              {onCartClick ? (
+                <button
+                  onClick={onCartClick}
+                  style={{ ...styles.navLink, background:'none', border:'none', cursor:'pointer', fontSize:14, padding:0, fontFamily:'inherit' }}
+                >
+                  {t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
+                </button>
+              ) : (
+                <Link to="/cart" style={styles.navLink}>
+                  {t('cart')} {cartCount > 0 && <span style={styles.badge}>{cartCount}</span>}
+                </Link>
+              )}
+
+              <Link to="/orders" style={styles.navLink}>{t('myOrders')}</Link>
+              <button onClick={onLogout} style={styles.logoutBtn}>{t('logout')}</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" style={styles.navLink}>{t('login')}</Link>
+              <Link to="/register" style={styles.registerBtn}>{t('register')}</Link>
+            </>
+          )}
+        </div>
+      )}
+
+      <div style={styles.mobileActions}>
+        {isMobile && (
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={styles.menuBtn}
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
         )}
+
         <button
           onClick={toggleTheme}
           title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}
+          style={styles.smallBtn}
         >
           {theme === 'light' ? '🌙' : '☀️'}
         </button>
-        <button onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')} style={{background:'none', border:'1px solid white', color:'white', padding:'4px 10px', borderRadius:'4px', cursor:'pointer', fontWeight:'bold', fontSize:'14px', marginLeft:'12px'}}>{language === 'EN' ? 'AR' : 'EN'}</button>
+
+        <button
+          onClick={() => setLanguage(language === 'EN' ? 'AR' : 'EN')}
+          style={styles.smallBtn}
+        >
+          {language === 'EN' ? 'AR' : 'EN'}
+        </button>
       </div>
+
+      {isMobile && mobileMenuOpen && (
+        <>
+          <div style={styles.mobileMenuBackdrop} onClick={closeMobileMenu} />
+          <div style={styles.mobileMenu}>
+            <div style={styles.mobileMenuHeader}>
+              <strong>JASPR <span style={{ color:'#f97316' }}>Market</span></strong>
+              <button onClick={closeMobileMenu} style={styles.mobileCloseBtn}>×</button>
+            </div>
+
+            <Link to="/" style={styles.mobileMenuItem} onClick={closeMobileMenu}>Home</Link>
+            <Link to="/products" style={styles.mobileMenuItem} onClick={closeMobileMenu}>Shop</Link>
+
+            {/* Categories accordion */}
+            {navCategories.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setCatExpanded(!catExpanded)}
+                  style={{...styles.mobileMenuItem, width:'100%', textAlign:'left', background:'none', border:'none', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center', fontFamily:'inherit'}}
+                >
+                  <span>Categories</span>
+                  <span style={{fontSize:12, color:'#94a3b8'}}>{catExpanded ? '▲' : '▼'}</span>
+                </button>
+                {catExpanded && (
+                  <div
+                    style={{
+                      padding:'10px 14px 14px',
+                      margin:'0 12px 10px',
+                      borderLeft:'3px solid #f97316',
+                      background:'rgba(255,255,255,0.04)',
+                      borderRadius:12,
+                      display:'grid',
+                      gridTemplateColumns:'repeat(2, minmax(0, 1fr))',
+                      gap:8
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {navCategories.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          navigate(`/products?category=${encodeURIComponent(c.name)}`)
+                          closeMobileMenu()
+                        }}
+                        style={{
+                          border:'1px solid rgba(255,255,255,0.08)',
+                          background:'rgba(255,255,255,0.06)',
+                          color:'#e5e7eb',
+                          borderRadius:10,
+                          padding:'9px 8px',
+                          fontSize:11,
+                          fontWeight:700,
+                          textAlign:'center',
+                          cursor:'pointer',
+                          lineHeight:1.2,
+                          fontFamily:'inherit'
+                        }}
+                      >
+                        {catLabel(c.name, language)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <Link to="/wishlist" style={styles.mobileMenuItem} onClick={closeMobileMenu}>Wishlist</Link>
+
+            {onCartClick ? (
+              <button
+                onClick={() => {
+                  closeMobileMenu()
+                  onCartClick()
+                }}
+                style={styles.mobileMenuButton}
+              >
+                Cart {cartCount > 0 ? `(${cartCount})` : ''}
+              </button>
+            ) : (
+              <Link to="/cart" style={styles.mobileMenuItem} onClick={closeMobileMenu}>
+                Cart {cartCount > 0 ? `(${cartCount})` : ''}
+              </Link>
+            )}
+
+            {user ? (
+              <>
+                {user.role === 'ADMIN' && (
+                  <Link to="/admin" style={styles.mobileMenuItem} onClick={closeMobileMenu}>Admin</Link>
+                )}
+
+                {user.role === 'VENDOR' && (
+                  <Link to="/login" style={styles.mobileMenuItem} onClick={closeMobileMenu}>My Store</Link>
+                )}
+
+                <Link to="/orders" style={styles.mobileMenuItem} onClick={closeMobileMenu}>My Orders</Link>
+
+                <button
+                  onClick={() => {
+                    closeMobileMenu()
+                    onLogout()
+                  }}
+                  style={styles.mobileMenuButton}
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" style={styles.mobileMenuItem} onClick={closeMobileMenu}>Login</Link>
+                <Link to="/register" style={styles.mobileMenuPrimary} onClick={closeMobileMenu}>Register</Link>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </nav>
   )
 }
@@ -109,6 +332,7 @@ function Products({
   wishlistOnly = false
 }) {
   const location = useLocation()
+  const isMobile = window.innerWidth <= 768
   const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -129,41 +353,68 @@ function Products({
     products.getCategories().then(r => setCategories(r.data)).catch(() => {})
   }, [])
 
-  // When the URL has ?category=<name>, capture it and try to resolve to an id
-  // once categories are available. This wires the home page links into the
-  // existing filter UI without needing custom backend logic on every load.
+  // When the URL has ?category=<name>, capture it. If the name is a known
+  // PARENT (Mobiles, Computers, Audio, Wearables, etc.), leave selectedCategory
+  // empty so the descendant-aware urlCategoryFiltered block below handles it
+  // by matching child category names. Only set selectedCategory directly when
+  // the URL name matches a category exactly AND isn't a parent.
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const name = params.get('category')
     setUrlCategoryName(name || '')
-    if (!name) return
+    if (!name) {
+      if (selectedCategory) setSelectedCategory('')
+      return
+    }
     if (categories.length === 0) return
-    const match = categories.find(c => c.name.toLowerCase() === name.trim().toLowerCase())
+    const requested = name.trim().toLowerCase()
+    const isParent = !!(['mobiles','computers','audio','wearables','fashion','beauty','home & kitchen','accessories'].includes(requested))
+    if (isParent) {
+      // Don't pin to a single category id — let the descendant filter handle it.
+      if (selectedCategory) setSelectedCategory('')
+      return
+    }
+    const match = categories.find(c => c.name.toLowerCase() === requested)
     if (match && match.id !== selectedCategory) {
       setSelectedCategory(match.id)
     }
   }, [location.search, categories]) // eslint-disable-line
 
-  useEffect(() => {
-    setLoading(true)
-    const params = { search }
-    if (selectedCategory) {
-      params.categoryId = selectedCategory
-    } else if (urlCategoryName) {
-      // Category not yet resolved to an id (categories list still loading or
-      // the name is a parent like "Mobiles" that we still want to filter by).
-      params.categoryName = urlCategoryName
-    }
-    products.getAll(params)
-      .then(r => { setItems(r.data); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [search, selectedCategory, urlCategoryName])
+useEffect(() => {
+  setLoading(true)
+
+  products.getAll()
+    .then(r => {
+      setItems(Array.isArray(r.data) ? r.data : [])
+      setLoading(false)
+    })
+    .catch(err => {
+      alert('Axios error: ' + (err.message || 'unknown'))
+      setItems([])
+      setLoading(false)
+    })
+}, [])
 
   const vendorOptions = [...new Set(items.map(p => p.vendor?.storeName).filter(Boolean))]
 
-const filtered = items.filter(p => {
+  const parentCategoryMap = {
+    mobiles: ['mobiles', 'smartphones', 'mobile covers', 'tablets'],
+    computers: ['computers', 'laptops', 'keyboard', 'mouse'],
+    audio: ['audio', 'headphones', 'bluetooth headphones'],
+    wearables: ['wearables', 'smart watch', 'smart watches'],
+    accessories: ['accessories', 'mobile covers', 'keyboard', 'mouse'],
+    fashion: ['fashion'],
+    beauty: ['beauty'],
+    'home & kitchen': ['home & kitchen']
+  }
+
+const baseFiltered = items.filter(p => {
 
   if (wishlistOnly && !wishlist.includes(p.id)) {
+    return false
+  }
+
+  if (selectedCategory && p.categoryId !== selectedCategory) {
     return false
   }
 
@@ -183,8 +434,32 @@ const filtered = items.filter(p => {
     return false
   }
 
+  if (search.trim()) {
+    const q = search.trim().toLowerCase()
+    const haystack = [p.name, p.vendor?.storeName, p.category?.name, p.description, p.brand]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    if (!haystack.includes(q)) return false
+  }
+
   return true
 })
+
+// If user came from a homepage parent category card like Mobiles / Computers,
+// try to filter by matching child category names. If that parent has no matching
+// products yet, show all products instead of showing "0 products found".
+const urlCategoryFiltered = (!selectedCategory && urlCategoryName)
+  ? baseFiltered.filter(p => {
+      const requested = urlCategoryName.trim().toLowerCase()
+      const productCategory = (p.category?.name || '').trim().toLowerCase()
+      const allowedCategories = parentCategoryMap[requested] || [requested]
+      return allowedCategories.includes(productCategory)
+    })
+  : baseFiltered
+
+const filtered = urlCategoryFiltered
+
 const showToast = (message) => {
   setToast(message)
 
@@ -192,7 +467,10 @@ const showToast = (message) => {
     setToast('')
   }, 2500)
 }
-const quickViewModal = quickViewProduct ? (
+const quickViewModal = quickViewProduct ? (() => {
+  const qvCond = conditionLabel(quickViewProduct.condition, language)
+  const qvImg = getProductImageSrc(quickViewProduct)
+  return (
   <div
     onClick={() => setQuickViewProduct(null)}
     style={{
@@ -203,7 +481,7 @@ const quickViewModal = quickViewProduct ? (
       display:'flex',
       alignItems:'center',
       justifyContent:'center',
-      padding:20,
+      padding: isMobile ? 12 : 20,
       backdropFilter:'blur(6px)'
     }}
   >
@@ -211,69 +489,94 @@ const quickViewModal = quickViewProduct ? (
       onClick={(e) => e.stopPropagation()}
       style={{
         background:'#fff',
-        borderRadius:24,
-        maxWidth:900,
+        borderRadius: isMobile ? 18 : 24,
+        maxWidth: 900,
         width:'100%',
-        overflow:'hidden',
+        maxHeight: isMobile ? '92vh' : '90vh',
+        overflowY: 'auto',
         display:'grid',
-        gridTemplateColumns:'1fr 1fr',
-        boxShadow:'0 20px 60px rgba(0,0,0,0.25)'
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        boxShadow:'0 20px 60px rgba(0,0,0,0.25)',
+        position:'relative'
       }}
     >
-      <div style={{background:'#f8f9fa', padding:40, display:'flex', alignItems:'center', justifyContent:'center'}}>
+      {/* Close button */}
+      <button
+        onClick={() => setQuickViewProduct(null)}
+        style={{
+          position:'absolute', top:12, right:12, zIndex:2,
+          width:36, height:36, borderRadius:'50%',
+          background:'rgba(255,255,255,0.95)', border:'1px solid #e2e8f0',
+          fontSize:22, lineHeight:1, color:'#0f1923', cursor:'pointer',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          boxShadow:'0 2px 8px rgba(0,0,0,0.12)'
+        }}
+        aria-label="Close"
+      >×</button>
+
+      {/* Image side */}
+      <div style={{
+        background:'linear-gradient(180deg,#f8fafc,#eef2f7)',
+        padding: isMobile ? 24 : 40,
+        display:'flex',
+        alignItems:'center',
+        justifyContent:'center',
+        position:'relative',
+        minHeight: isMobile ? 240 : 360
+      }}>
+        <span style={{
+          position:'absolute', top:14, left:14,
+          padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:700,
+          background: qvCond.bg, color: qvCond.color
+        }}>{qvCond.text}</span>
         <img
-          src={quickViewProduct.images?.[0]?.startsWith('http') ? quickViewProduct.images[0] : `http://localhost:3000${quickViewProduct.images?.[0]}`}
+          src={qvImg || FALLBACK_IMG}
           alt={quickViewProduct.name}
-          style={{maxWidth:'100%', maxHeight:420, objectFit:'contain'}}
+          style={{maxWidth:'100%', maxHeight: isMobile ? 240 : 420, objectFit:'contain'}}
+          onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }}
         />
       </div>
 
-      <div style={{padding:40}}>
-        <div style={{fontSize:12, color:'#94a3b8', marginBottom:8, textTransform:'uppercase'}}>
+      {/* Details side */}
+      <div style={{padding: isMobile ? 22 : 40}}>
+        <div style={{fontSize:12, color:'#94a3b8', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.5px'}}>
           {quickViewProduct.vendor?.storeName}
         </div>
 
-        <h2 style={{fontSize:28, marginBottom:16, color:'#0f172a'}}>
+        <h2 style={{fontSize: isMobile ? 22 : 28, marginBottom:14, color:'#0f172a', lineHeight:1.3}}>
           {quickViewProduct.name}
         </h2>
 
-        <div style={{fontSize:32, fontWeight:800, color:'#f97316', marginBottom:20}}>
+        <div style={{fontSize: isMobile ? 26 : 32, fontWeight:800, color:'#f97316', marginBottom:18}}>
           {formatQAR(quickViewProduct.price)}
         </div>
 
-        <p style={{color:'#64748b', lineHeight:1.7, marginBottom:24}}>
+        <p style={{color:'#64748b', lineHeight:1.6, marginBottom:22, fontSize: isMobile ? 14 : 15}}>
           {language === 'AR'
   ? 'منتج عالي الجودة مع توصيل سريع في جميع أنحاء قطر.'
   : 'Premium quality product with fast delivery across Qatar.'}
         </p>
 
-        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:16}}>
-          <span style={{fontWeight:600}}>
-          {language === 'AR' ? 'الكمية' : 'Qty'}
+        <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:18}}>
+          <span style={{fontWeight:600, color:'#0f1923'}}>
+            {language === 'AR' ? 'الكمية' : 'Qty'}
           </span>
-          {language === 'AR' ? (
-  <>
-    <button onClick={() => setQuickQty(quickQty + 1)}>+</button>
-    <strong>{quickQty}</strong>
-    <button onClick={() => setQuickQty(Math.max(1, quickQty - 1))}>-</button>
-  </>
-) : (
-  <>
-    <button onClick={() => setQuickQty(Math.max(1, quickQty - 1))}>-</button>
-    <strong>{quickQty}</strong>
-    <button onClick={() => setQuickQty(quickQty + 1)}>+</button>
-  </>
-)}
+          <div style={{display:'flex', alignItems:'center', gap:8, border:'1px solid #e2e8f0', borderRadius:10, padding:'2px 4px'}}>
+            <button onClick={() => setQuickQty(Math.max(1, quickQty - 1))}
+              style={{width:32, height:32, border:'none', background:'transparent', cursor:'pointer', fontSize:18, color:'#0f1923'}}>−</button>
+            <strong style={{minWidth:24, textAlign:'center', color:'#0f1923'}}>{quickQty}</strong>
+            <button onClick={() => setQuickQty(quickQty + 1)}
+              style={{width:32, height:32, border:'none', background:'transparent', cursor:'pointer', fontSize:18, color:'#0f1923'}}>+</button>
+          </div>
         </div>
 
-        <div style={{display:'flex', gap:12}}>
+        <div style={{display:'flex', gap:10, flexDirection: isMobile ? 'column' : 'row'}}>
           <button
             onClick={async () => {
               try {
                 await cart.add({ productId: quickViewProduct.id, quantity: quickQty })
                 showToast(`Added ${quickQty} item(s) to cart`)
                 setQuickViewProduct(null)
-                // Refresh the navbar cart count from the server
                 try {
                   const r = await cart.get()
                   const count = (r.data.items || []).reduce((s, i) => s + i.quantity, 0)
@@ -283,7 +586,7 @@ const quickViewModal = quickViewProduct ? (
                 showToast(language === 'AR' ? 'يرجى تسجيل الدخول أولاً' : 'Please log in to add items')
               }
             }}
-            style={{flex:1, padding:'14px 18px', borderRadius:14, border:'none', background:'#f97316', color:'#fff', fontWeight:700, cursor:'pointer'}}
+            style={{flex:1, padding:'14px 18px', borderRadius:14, border:'none', background:'#f97316', color:'#fff', fontWeight:700, cursor:'pointer', fontSize:15}}
           >
             {language === 'AR' ? 'أضف إلى السلة' : 'Add to Cart'}
           </button>
@@ -292,7 +595,7 @@ const quickViewModal = quickViewProduct ? (
             onClick={() => {
               window.location.href = `/products/${quickViewProduct.id}`
             }}
-            style={{flex:1, padding:'14px 18px', borderRadius:14, border:'1px solid #dfe3e8', background:'#fff', color:'#0f1923', fontWeight:700, cursor:'pointer'}}
+            style={{flex:1, padding:'14px 18px', borderRadius:14, border:'1px solid #dfe3e8', background:'#fff', color:'#0f1923', fontWeight:700, cursor:'pointer', fontSize:15}}
           >
             {language === 'AR' ? 'عرض التفاصيل' : 'View Details'}
           </button>
@@ -307,7 +610,8 @@ const quickViewModal = quickViewProduct ? (
       </div>
     </div>
   </div>
-) : null
+  )
+})() : null
 
   const clearFilters = () => {
     setSelectedCategory('')
@@ -365,7 +669,8 @@ const quickViewModal = quickViewProduct ? (
     )}
 
     {quickViewModal}
-      {/* Hero Banner */}
+      {/* Hero Banner — hidden when browsing a category */}
+      {!urlCategoryName && !selectedCategory && !search && (
       <div style={{background:'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)', padding:'40px 32px', marginBottom:32, position:'relative', overflow:'hidden'}}>
         <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, display:'flex', flexWrap:'wrap', opacity:0.06, pointerEvents:'none', overflow:'hidden', alignContent:'flex-start'}}>
           {['📱','💻','🎧','⌨️','🖱️','📷','🔋','🎮','⌚','🖥️','📡','💾'].map((emoji, i) => (
@@ -375,7 +680,6 @@ const quickViewModal = quickViewProduct ? (
           ))}
         </div>
         <div style={{position:'relative', zIndex:1, maxWidth:1100, margin:'0 auto'}}>
-          <p style={{color:'#f97316', fontSize:13, fontWeight:600, letterSpacing:2, marginBottom:8, textTransform:'uppercase'}}>by JASPR Trading</p>
           <h1 style={{fontSize:36, fontWeight:800, color:'#fff', marginBottom:10, lineHeight:1.2}}>{t('heroTitle')}</h1>
           <p style={{color:'#94a3b8', fontSize:16, marginBottom:24}}>{t('heroSub')}</p>
           <div style={{display:'flex', gap:16, flexWrap:'wrap'}}>
@@ -389,6 +693,7 @@ const quickViewModal = quickViewProduct ? (
           </div>
         </div>
       </div>
+      )}
 
       <div style={{maxWidth:1100, margin:'0 auto', padding:'0 32px 100px'}}>
         <RecentlyViewedStrip items={items} t={t} />
@@ -427,7 +732,7 @@ const quickViewModal = quickViewProduct ? (
             <div className="jm-card" style={{position:'absolute', top:'100%', left:12, right:12, background:'#fff', border:'1px solid #eef0f3', borderRadius:14, boxShadow:'0 12px 32px rgba(15,25,35,0.18)', marginTop:6, overflow:'hidden', zIndex:10}}>
               {matches.map(p => {
                 const img = p.images?.[0]
-                const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+                const src = getImageSrc(img)
                 return (
                   <Link
                     key={p.id}
@@ -436,7 +741,7 @@ const quickViewModal = quickViewProduct ? (
                     style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', textDecoration:'none', color:'inherit', borderBottom:'1px solid #f1f5f9'}}
                   >
                     <div style={{width:38, height:38, borderRadius:8, background:'#f8fafc', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0}}>
-                      {src ? <img src={src} alt="" style={{width:'100%', height:'100%', objectFit:'contain'}} /> : <span>📱</span>}
+                      <img src={src || FALLBACK_IMG} alt="" style={{width:'100%', height:'100%', objectFit:'contain'}} onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }} />
                     </div>
                     <div style={{flex:1, minWidth:0}}>
                       <div className="jm-card-title" style={{fontSize:13, fontWeight:600, color:'#0f1923', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.name}</div>
@@ -456,11 +761,6 @@ const quickViewModal = quickViewProduct ? (
         <div className="jm-shop-layout">
           <aside className="jm-shop-filters">
         <div style={{display:'flex', gap:12, marginBottom:24, flexWrap:'wrap', alignItems:'center'}}>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
-            <option value="">{t('allCategories')}</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{categoryName(c.name)}</option>)}
-          </select>
-
           <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} style={{padding:'10px 14px', borderRadius:8, border:'1px solid #ddd', fontSize:14, background:'#fff', cursor:'pointer', minWidth:160}}>
             <option value="">{language === 'AR' ? 'جميع البائعين' : 'All Vendors'}</option>
             {vendorOptions.map(v => <option key={v} value={v}>{v}</option>)}
@@ -489,23 +789,12 @@ const quickViewModal = quickViewProduct ? (
           </span>
         </div>
 
-        {categories.length > 0 && (
-          <div style={{display:'flex', gap:8, marginBottom:20, flexWrap:'wrap'}}>
-            <button onClick={() => setSelectedCategory('')} style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background: selectedCategory === '' ? '#f97316' : '#f8f9fa', color: selectedCategory === '' ? '#fff' : '#555'}}>
-              {t('all')}
-            </button>
-            {categories.map(c => (
-              <button key={c.id} onClick={() => setSelectedCategory(selectedCategory === c.id ? '' : c.id)} style={{padding:'6px 16px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:500, background: selectedCategory === c.id ? '#f97316' : '#f8f9fa', color: selectedCategory === c.id ? '#fff' : '#555'}}>
-                {categoryName(c.name)}
-              </button>
-            ))}
-          </div>
-        )}
+
           </aside>
           <main className="jm-shop-main">
 
         {loading ? (
-          <div style={styles.grid}>
+          <div style={isMobile ? styles.gridMobile : styles.grid}>
             {Array.from({length: 8}).map((_, i) => <ProductSkeleton key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
@@ -516,165 +805,136 @@ const quickViewModal = quickViewProduct ? (
             <button onClick={clearFilters} style={{...styles.heroBtn, padding:'14px 28px', borderRadius:14}}>{t('clearFilters')}</button>
           </div>
         ) : (
-          <div style={styles.grid}>
+          <div style={isMobile ? styles.gridMobile : styles.grid}>
             {filtered.map(p => {
               const cond = conditionLabel(p.condition, language)
-              const imgSrc = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`) : null
+              const imgSrc = getProductImageSrc(p)
               const avgRating = Math.round(p.avgRating || 0)
 
               return (
-                <div
+                <Link
                   key={p.id}
-                  className="jm-card"
-                  style={{border:'1px solid #eef0f3', borderRadius:24, overflow:'hidden', background:'#fff', boxShadow:'0 10px 30px rgba(15,25,35,0.08)', transition:'all .3s ease', cursor:'pointer', display:'flex', flexDirection:'column', height:500}}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform='translateY(-6px) scale(1.01)'
-                    e.currentTarget.style.boxShadow='0 16px 36px rgba(15,25,35,0.16)'
-                    const img = e.currentTarget.querySelector('img')
-                    if (img) { img.style.transform = 'scale(1.12)'
-                    img.style.filter = 'brightness(1.03)'
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform='translateY(0) scale(1)'
-                    e.currentTarget.style.boxShadow='0 10px 30px rgba(15,25,35,0.08)'
-                    const img = e.currentTarget.querySelector('img')
-                    if (img) { img.style.transform = 'scale(1)'
-                    img.style.filter = 'brightness(1)'
-                    }
-                  }}
+                  to={`/products/${p.id}`}
+                  style={{textDecoration:'none', color:'inherit', display:'block'}}
                 >
-                  <div className="jm-card-img" style={{height:190, padding:10, background:'linear-gradient(180deg,#f8fafc,#eef2f7)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:64, overflow:'hidden', position:'relative'}}>
-                    <button
-                    onClick={(e) => {
-  e.stopPropagation()
+                  <article
+                    style={{
+                      border:'1px solid #eef0f3',
+                      borderRadius: isMobile ? 16 : 20,
+                      overflow:'hidden',
+                      background:'#fff',
+                      boxShadow:'0 6px 18px rgba(15,25,35,0.06)',
+                      display:'flex',
+                      flexDirection:'column',
+                      height: isMobile ? 260 : 340,
+                      cursor:'pointer'
+                    }}
+                  >
+                    {/* IMAGE — primary visual, fills most of the card */}
+                    <div style={{
+                      flex:1,
+                      background:'#f8fafc',
+                      position:'relative',
+                      overflow:'hidden',
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent:'center'
+                    }}>
+                      <img
+                        src={imgSrc || FALLBACK_IMG}
+                        alt={p.name}
+                        loading="lazy"
+                        style={{
+                          width:'100%',
+                          height:'100%',
+                          objectFit:'cover',
+                          display:'block'
+                        }}
+                        onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          toggleWishlist(p.id)
+                          showToast(wishlist.includes(p.id) ? 'Removed from wishlist' : 'Added to wishlist')
+                        }}
+                        style={{
+                          position:'absolute',
+                          top:8,
+                          right:8,
+                          width:32,
+                          height:32,
+                          borderRadius:'50%',
+                          border:'none',
+                          background:'rgba(255,255,255,0.92)',
+                          display:'flex',
+                          alignItems:'center',
+                          justifyContent:'center',
+                          cursor:'pointer',
+                          boxShadow:'0 2px 6px rgba(0,0,0,0.12)',
+                          padding:0
+                        }}
+                        aria-label="Toggle wishlist"
+                      >
+                        <span style={{color: wishlist.includes(p.id) ? '#ff4d6d' : '#94a3b8', fontSize:16, lineHeight:1}}>♥</span>
+                      </button>
 
-  if (wishlist.includes(p.id)) {
-    toggleWishlist(p.id)
-    showToast('Removed from wishlist')
-  } else {
-    toggleWishlist(p.id)
-    showToast('Added to wishlist')
-  }
-}}
-
-  style={{
-    position:'absolute',
-    top:12,
-    right:12,
-    width:42,
-    height:42,
-    borderRadius:'50%',
-    border:'1px solid rgba(255,255,255,0.4)',
-    background:'rgba(255,255,255,0.85)',
-    backdropFilter:'blur(10px)',
-    display:'flex',
-    alignItems:'center',
-    justifyContent:'center',
-    cursor:'pointer',
-    transition:'all .25s ease',
-    boxShadow:'0 4px 14px rgba(0,0,0,0.12)',
-    zIndex:5
-  }}
-  onMouseEnter={(e)=>{
-  e.currentTarget.style.transform='scale(1.1)'
-  e.currentTarget.style.boxShadow='0 8px 20px rgba(0,0,0,0.18)'
-}}
-onMouseLeave={(e)=>{
-  e.currentTarget.style.transform='scale(1)'
-  e.currentTarget.style.boxShadow='0 4px 14px rgba(0,0,0,0.12)'
-}}
->
-  <span
-    style={{
-      color: wishlist.includes(p.id) ? '#ff4d6d' : '#666',
-      fontSize:20,
-      transition:'all .25s ease'
-    }}
-  >
-    ♥
-  </span>
-</button>
-
-                    {imgSrc ? (
-                      <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:10, transition:'transform .35s ease, filter .35s ease'}} />
-                    ) : '📱'}
-
-                    <span style={{position:'absolute', top:10, left:10, padding:'3px 8px', borderRadius:6, fontSize:11, fontWeight:700, background:cond.bg, color:cond.color}}>
-                      {cond.text}
-                    </span>
-                  </div>
-
-                  <div className="jm-card-body" style={{padding:'14px 16px', display:'flex', flexDirection:'column', flex:1}}>
-                    <p className="jm-card-meta" style={{fontSize:11, color:'#aaa', marginBottom:4, textTransform:'uppercase', letterSpacing:0.5, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-                      <span>{p.vendor?.storeName} · {catLabel(p.category?.name, language)}</span>
-                      {p.vendor?.isVerified && (
-                        <span title="Verified vendor" style={{background:'#dbeafe', color:'#1d4ed8', padding:'1px 6px', borderRadius:10, fontSize:9, fontWeight:700, letterSpacing:0.3, display:'inline-flex', alignItems:'center', gap:2}}>
-                          ✓ {t('verified')}
-                        </span>
-                      )}
-                    </p>
-
-                    <h3 className="jm-card-title" style={{fontSize:15, fontWeight:700, color:'#0f1923', marginBottom:12, lineHeight:1.4, minHeight:40}}>
-                      {p.name}
-                    </h3>
-
-                    <div style={{display:'flex', gap:6, flexWrap:'wrap', marginBottom:10}}>
-                      {p.codEligible && (
-                        <span style={{background:'#dbeafe', color:'#1d4ed8', padding:'4px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>COD</span>
-                      )}
-                      {p.freeDeliveryEligible && (
-                        <span style={{background:'#dcfce7', color:'#166534', padding:'4px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>Free Delivery</span>
-                      )}
+                      {/* Quick View button — bottom of image on hover/tap */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setQuickViewProduct(p)
+                        }}
+                        style={{
+                          position:'absolute',
+                          bottom:8,
+                          left:'50%',
+                          transform:'translateX(-50%)',
+                          padding:'6px 14px',
+                          borderRadius:20,
+                          border:'none',
+                          background:'rgba(15,25,35,0.82)',
+                          color:'#fff',
+                          fontSize:11,
+                          fontWeight:600,
+                          cursor:'pointer',
+                          whiteSpace:'nowrap',
+                          letterSpacing:0.3,
+                          boxShadow:'0 2px 8px rgba(0,0,0,0.2)'
+                        }}
+                      >
+                        Quick View
+                      </button>
                     </div>
 
-                    <div style={{display:'flex', alignItems:'center', gap:4, marginBottom:10}}>
-                      {[1,2,3,4,5].map(s => (
-                        <span key={s} style={{fontSize:13, color: s <= avgRating ? '#fbbf24' : '#d1d5db'}}>★</span>
-                      ))}
-                      {p.reviewCount > 0 && <span style={{fontSize:11, color:'#aaa', marginLeft:2}}>({p.reviewCount})</span>}
-                    </div>
-
-                    <div style={{marginBottom:16}}>
-                      {p.compareAtPrice && p.compareAtPrice > p.price && (
-                        <div style={{fontSize:13, color:'#888', textDecoration:'line-through', marginBottom:4}}>
-                          {formatQAR(p.compareAtPrice)}
-                        </div>
-                      )}
-                      <div style={{display:'flex', alignItems:'center', gap:8}}>
-                        <p style={{fontSize:20, fontWeight:800, color:'#f97316', margin:0}}>{formatQAR(p.price)}</p>
-                        {p.compareAtPrice && p.compareAtPrice > p.price && (
-                          <span style={{background:'#dcfce7', color:'#166534', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:700}}>
-                            {language === 'AR'
-                              ? `${Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}٪ خصم`
-                              : `${Math.round(((p.compareAtPrice - p.price) / p.compareAtPrice) * 100)}% OFF`}
-                          </span>
-                        )}
+                    {/* BOTTOM — name + price only */}
+                    <div style={{padding: isMobile ? '10px 12px 12px' : '14px 16px 16px', display:'flex', flexDirection:'column', gap:6}}>
+                      <div
+                        style={{
+                          fontSize: isMobile ? 13 : 14,
+                          fontWeight:600,
+                          color:'#0f1923',
+                          lineHeight:1.3,
+                          overflow:'hidden',
+                          textOverflow:'ellipsis',
+                          display:'-webkit-box',
+                          WebkitLineClamp:2,
+                          WebkitBoxOrient:'vertical',
+                          minHeight: isMobile ? 32 : 36
+                        }}
+                      >
+                        {p.name}
+                      </div>
+                      <div style={{fontSize: isMobile ? 16 : 18, fontWeight:800, color:'#f97316'}}>
+                        {formatQAR(p.price)}
                       </div>
                     </div>
-
-<button
-  onClick={() => setQuickViewProduct(p)}
-  style={{
-    width:'100%',
-    padding:'10px 14px',
-    borderRadius:12,
-    border:'1px solid #dfe3e8',
-    background:'#fff',
-    color:'#0f1923',
-    fontWeight:700,
-    cursor:'pointer',
-    marginBottom:10,
-    transition:'all .25s ease'
-  }}
->
-  👁 {language === 'AR' ? 'عرض سريع' : 'Quick View'}
-</button>
-                    <Link to={`/products/${p.id}`} style={{display:'block', textAlign:'center', background:'#0f1923', color:'#fff', padding:'10px 16px', borderRadius:10, textDecoration:'none', fontSize:14, fontWeight:600, letterSpacing:0.3, marginTop:'auto'}}>
-                      {t('viewDetails')}
-                    </Link>
-                  </div>
-                </div>
+                  </article>
+                </Link>
               )
             })}
           </div>
@@ -698,19 +958,175 @@ function Login({ onLogin, t = (k) => k }) {
       onLogin(res.data.user)
       window.location.href = '/'
     } catch (err) {
-  setError(err.response?.data?.error || t('invalidCredentials'))
-}
+      setError(err.response?.data?.error || t('invalidCredentials'))
+    }
   }
 
   return (
-    <div style={styles.formPage}>
-      <div style={styles.formBox}>
-        <h2 style={styles.formTitle}>{t('welcomeBack')}</h2>
-        {error && <p style={styles.error}>{error}</p>}
-        <input style={styles.input} placeholder={t('email')} value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-        <input style={styles.input} type="password" placeholder={t('password')} value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-        <button style={styles.submitBtn} onClick={handleSubmit}>{t('login')}</button>
-        <p style={{textAlign:'center', marginTop:12}}>{t('noAccount')} <Link to="/register">{t('register')}</Link></p>
+    <div style={{minHeight:'100vh', background:'#fff', display:'flex', flexDirection:'column'}}>
+      {/* Orange header strip */}
+      <div style={{background:'#f97316', padding:'24px 20px 20px', color:'#fff'}}>
+        <div style={{fontSize:22, fontWeight:800, letterSpacing:0.5}}>JASPR <span style={{fontWeight:400}}>Market</span></div>
+        <div style={{fontSize:13, opacity:0.9, marginTop:4}}>Qatar's Trusted Tech Marketplace</div>
+      </div>
+
+      <div style={{flex:1, padding:'28px 24px'}}>
+        <h2 style={{fontSize:22, fontWeight:700, marginBottom:6, color:'#0f1923'}}>Sign in</h2>
+        <p style={{fontSize:13, color:'#64748b', marginBottom:24}}>Welcome back! Sign in to continue shopping.</p>
+
+        {error && <div style={{background:'#fef2f2', border:'1px solid #fca5a5', color:'#dc2626', borderRadius:8, padding:'10px 14px', marginBottom:16, fontSize:13}}>{error}</div>}
+
+        <input
+          style={{...styles.input, fontSize:15}}
+          placeholder="Email address"
+          value={form.email}
+          onChange={e => setForm({...form, email: e.target.value})}
+          autoComplete="email"
+        />
+        <input
+          style={{...styles.input, fontSize:15}}
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={e => setForm({...form, password: e.target.value})}
+          autoComplete="current-password"
+        />
+
+        <button style={{...styles.submitBtn, fontSize:15, padding:'14px', borderRadius:10}} onClick={handleSubmit}>
+          Sign In
+        </button>
+
+        <div style={{textAlign:'center', marginTop:16, fontSize:13, color:'#64748b'}}>
+          Don't have an account? <Link to="/register" style={{color:'#f97316', fontWeight:600}}>Register</Link>
+        </div>
+
+        {/* Trust badges */}
+        <div style={{marginTop:40, display:'flex', justifyContent:'center', gap:28, flexWrap:'wrap'}}>
+          {['🔒 Secure Login', '🛡️ Data Protected', '✅ Verified Vendors'].map(b => (
+            <div key={b} style={{fontSize:12, color:'#94a3b8', display:'flex', alignItems:'center', gap:4}}>{b}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Profile({ user, onLogout, t = (k) => k, language = 'EN' }) {
+  const navigate = useNavigate()
+  const displayUser = user || {}
+  const initial = (displayUser.name || displayUser.email || 'U')[0].toUpperCase()
+
+  const menuItems = [
+    { icon: '📦', label: 'Your Orders', to: '/orders' },
+    { icon: '❤️', label: 'Wishlist', to: '/wishlist' },
+    { icon: '📍', label: 'Saved Addresses', action: () => navigate('/checkout') },
+    { icon: '💳', label: 'Payment Methods', action: () => {} },
+    { icon: '🔔', label: 'Notifications', action: () => {} },
+  ]
+
+  const policyItems = [
+    { icon: '📄', label: 'Terms & Conditions', to: '/terms' },
+    { icon: '🔐', label: 'Privacy Policy', to: '/privacy' },
+    { icon: '↩️', label: 'Refund Policy', to: '/refund-policy' },
+    { icon: '🚚', label: 'Shipping Policy', to: '/shipping' },
+    { icon: '🍪', label: 'Cookie Policy', to: '/cookie-policy' },
+    { icon: '🏪', label: 'Vendor Policy', to: '/vendor-policy' },
+    { icon: '🗑️', label: 'Account Deletion', to: '/account-deletion' },
+    { icon: '📞', label: 'Contact Us', to: '/contact' },
+  ]
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    if (onLogout) onLogout()
+    navigate('/')
+    window.location.reload()
+  }
+
+  if (!localStorage.getItem('token')) {
+    return (
+      <div style={{...styles.page, textAlign:'center', paddingTop:60}}>
+        <div style={{fontSize:64, marginBottom:16}}>👤</div>
+        <h2 style={{marginBottom:8}}>Sign in to your account</h2>
+        <p style={{color:'#64748b', marginBottom:24}}>View orders, wishlist, and manage your profile</p>
+        <Link to="/login" style={{display:'inline-block', background:'#f97316', color:'#fff', padding:'13px 32px', borderRadius:10, fontWeight:700, textDecoration:'none', fontSize:15}}>Sign In</Link>
+        <div style={{marginTop:12}}>
+          <Link to="/register" style={{color:'#f97316', fontSize:13}}>New customer? Register here</Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{background:'#f8f9fa', minHeight:'100vh', paddingBottom:80}}>
+      {/* Profile header */}
+      <div style={{background:'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)', padding:'28px 20px 24px', color:'#fff'}}>
+        <div style={{display:'flex', alignItems:'center', gap:16}}>
+          <div style={{width:60, height:60, borderRadius:'50%', background:'#f97316', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, fontWeight:700, color:'#fff', flexShrink:0}}>
+            {initial}
+          </div>
+          <div>
+            <div style={{fontSize:18, fontWeight:700}}>{displayUser.name || 'My Account'}</div>
+            <div style={{fontSize:13, opacity:0.7, marginTop:2}}>{displayUser.email || ''}</div>
+            {displayUser.phone && <div style={{fontSize:12, opacity:0.6}}>{displayUser.phone}</div>}
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{display:'flex', gap:0, marginTop:20, background:'rgba(255,255,255,0.08)', borderRadius:12, overflow:'hidden'}}>
+          {[
+            { label: 'Orders', icon: '📦', to: '/orders' },
+            { label: 'Wishlist', icon: '❤️', to: '/wishlist' },
+            { label: 'Cart', icon: '🛒', to: '/cart' },
+          ].map((s, i) => (
+            <Link key={s.label} to={s.to} style={{flex:1, textAlign:'center', padding:'14px 8px', color:'#fff', textDecoration:'none', borderRight: i < 2 ? '1px solid rgba(255,255,255,0.12)' : 'none'}}>
+              <div style={{fontSize:20}}>{s.icon}</div>
+              <div style={{fontSize:11, marginTop:4, opacity:0.8}}>{s.label}</div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Main menu */}
+      <div style={{margin:'16px 16px 0', background:'#fff', borderRadius:14, overflow:'hidden', boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+        {menuItems.map((item, i) => (
+          item.to ? (
+            <Link key={item.label} to={item.to} style={{display:'flex', alignItems:'center', gap:14, padding:'15px 18px', color:'#0f1923', textDecoration:'none', borderBottom: i < menuItems.length-1 ? '1px solid #f1f5f9' : 'none'}}>
+              <span style={{fontSize:20, width:28, textAlign:'center'}}>{item.icon}</span>
+              <span style={{flex:1, fontSize:15, fontWeight:500}}>{item.label}</span>
+              <span style={{color:'#cbd5e1', fontSize:16}}>›</span>
+            </Link>
+          ) : (
+            <button key={item.label} onClick={item.action} style={{display:'flex', alignItems:'center', gap:14, padding:'15px 18px', color:'#0f1923', background:'none', border:'none', width:'100%', cursor:'pointer', borderBottom: i < menuItems.length-1 ? '1px solid #f1f5f9' : 'none', textAlign:'left'}}>
+              <span style={{fontSize:20, width:28, textAlign:'center'}}>{item.icon}</span>
+              <span style={{flex:1, fontSize:15, fontWeight:500}}>{item.label}</span>
+              <span style={{color:'#cbd5e1', fontSize:16}}>›</span>
+            </button>
+          )
+        ))}
+      </div>
+
+      {/* Policies section */}
+      <div style={{margin:'16px 16px 0', background:'#fff', borderRadius:14, overflow:'hidden', boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+        <div style={{padding:'12px 18px', fontSize:12, fontWeight:700, color:'#94a3b8', letterSpacing:0.8, textTransform:'uppercase'}}>Legal & Policies</div>
+        {policyItems.map((item, i) => (
+          <Link key={item.label} to={item.to} style={{display:'flex', alignItems:'center', gap:14, padding:'13px 18px', color:'#334155', textDecoration:'none', borderTop:'1px solid #f1f5f9'}}>
+            <span style={{fontSize:17, width:28, textAlign:'center'}}>{item.icon}</span>
+            <span style={{flex:1, fontSize:14}}>{item.label}</span>
+            <span style={{color:'#cbd5e1', fontSize:16}}>›</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Sign out */}
+      <div style={{margin:'16px 16px 0', background:'#fff', borderRadius:14, overflow:'hidden', boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+        <button onClick={handleLogout} style={{display:'flex', alignItems:'center', gap:14, padding:'15px 18px', color:'#ef4444', background:'none', border:'none', width:'100%', cursor:'pointer', fontSize:15, fontWeight:600}}>
+          <span style={{fontSize:20, width:28, textAlign:'center'}}>🚪</span>
+          Sign Out
+        </button>
+      </div>
+
+      <div style={{textAlign:'center', padding:'20px 0', fontSize:11, color:'#cbd5e1'}}>
+        JASPR Market · Qatar's Trusted Tech Marketplace
       </div>
     </div>
   )
@@ -786,14 +1202,39 @@ function Register({ onLogin, t = (k) => k }) {
 function Cart({ onCartUpdate, t = (k) => k }) {
   const [cartData, setCartData] = useState({ items: [], total: 0 })
   const [loading, setLoading] = useState(true)
+  const [selectedItems, setSelectedItems] = useState([])
   const navigate = useNavigate()
 
+  // Auto-select all items when cart loads
+  useEffect(() => {
+    if (cartData.items.length > 0) {
+      setSelectedItems(cartData.items.map(i => i.id))
+    }
+  }, [cartData.items.length]) // eslint-disable-line
+
+  const toggleItem = (id) => setSelectedItems(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  )
+  const allSelected = cartData.items.length > 0 && selectedItems.length === cartData.items.length
+  const toggleAll = () => setSelectedItems(allSelected ? [] : cartData.items.map(i => i.id))
+  const checkedItems = cartData.items.filter(i => selectedItems.includes(i.id))
+  const subtotal = checkedItems.reduce((s, i) => s + (i.product.price * i.quantity), 0)
+
   const loadCart = () => {
+    if (!localStorage.getItem('token')) {
+      setCartData({ items: [], total: 0 })
+      setLoading(false)
+      return
+    }
+
     cart.get().then(r => {
       setCartData(r.data)
       setLoading(false)
-      const total = r.data.items.reduce((sum, i) => sum + i.quantity, 0)
+      const total = (r.data.items || []).reduce((sum, i) => sum + i.quantity, 0)
       if (onCartUpdate) onCartUpdate(total)
+    }).catch(() => {
+      setCartData({ items: [], total: 0 })
+      setLoading(false)
     })
   }
 
@@ -822,27 +1263,52 @@ function Cart({ onCartUpdate, t = (k) => k }) {
         </div>
       ) : (
         <>
-          {cartData.items.map(item => (
-            <div key={item.id} style={styles.cartItem}>
-              <div style={{fontSize:32}}>📱</div>
-              <div style={{flex:1, marginLeft:16}}>
-                <p style={{fontWeight:500}}>{item.product.name}</p>
-                <p style={{color:'#666', fontSize:14}}>{item.product.vendor?.storeName}</p>
-              </div>
-              <div style={{display:'flex', alignItems:'center', gap:12}}>
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <button onClick={() => item.quantity === 1 ? handleRemove(item.productId) : handleUpdate(item.productId, item.quantity - 1)} style={styles.qtyBtn}>-</button>
-                  <span style={{fontWeight:500, minWidth:20, textAlign:'center'}}>{item.quantity}</span>
-                  <button onClick={() => handleUpdate(item.productId, item.quantity + 1)} style={styles.qtyBtn}>+</button>
-                </div>
-                <p style={{color:'#f97316', fontWeight:500, minWidth:90, textAlign:'right'}}>{formatQAR(item.product.price * item.quantity)}</p>
-                <button onClick={() => handleRemove(item.productId)} style={styles.removeBtn}>X</button>
-              </div>
+          {/* Select All row */}
+          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12, padding:'8px 0', borderBottom:'1px solid #e2e8f0'}}>
+            <div onClick={toggleAll} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: allSelected ? '#f97316' : '#cbd5e1', background: allSelected ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0}}>
+              {allSelected && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
             </div>
-          ))}
+            <span style={{fontWeight:600, fontSize:14, color:'#0f1923'}}>{allSelected ? 'Deselect All' : 'Select All'} ({cartData.items.length} items)</span>
+          </div>
+          {cartData.items.map(item => {
+            const checked = selectedItems.includes(item.id)
+            return (
+              <div key={item.id} style={{...styles.cartItem, opacity: checked ? 1 : 0.5, border: checked ? '1.5px solid #f97316' : '1.5px solid #e2e8f0', borderRadius:10, marginBottom:10, transition:'all 0.15s'}}>
+                <div onClick={() => toggleItem(item.id)} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: checked ? '#f97316' : '#cbd5e1', background: checked ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, marginRight:8}}>
+                  {checked && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
+                </div>
+                <div style={{fontSize:32}}>📱</div>
+                <div style={{flex:1, marginLeft:12}}>
+                  <p style={{fontWeight:500}}>{item.product.name}</p>
+                  <p style={{color:'#666', fontSize:14}}>{item.product.vendor?.storeName}</p>
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:12}}>
+                  <div style={{display:'flex', alignItems:'center', gap:8}}>
+                    <button onClick={() => item.quantity === 1 ? handleRemove(item.productId) : handleUpdate(item.productId, item.quantity - 1)} style={styles.qtyBtn}>-</button>
+                    <span style={{fontWeight:500, minWidth:20, textAlign:'center'}}>{item.quantity}</span>
+                    <button onClick={() => handleUpdate(item.productId, item.quantity + 1)} style={styles.qtyBtn}>+</button>
+                  </div>
+                  <p style={{color:'#f97316', fontWeight:500, minWidth:90, textAlign:'right'}}>{formatQAR(item.product.price * item.quantity)}</p>
+                  <button onClick={() => handleRemove(item.productId)} style={styles.removeBtn}>X</button>
+                </div>
+              </div>
+            )
+          })}
           <div style={styles.cartTotal}>
-            <h3 style={{marginBottom:16}}>{t('total')}: {formatQAR(cartData.total)}</h3>
-            <button onClick={() => navigate('/checkout')} style={styles.submitBtn}>{t('proceedToCheckout')}</button>
+            <h3 style={{marginBottom:4}}>{t('total')}: <span style={{color:'#f97316'}}>{formatQAR(subtotal)}</span></h3>
+            {checkedItems.length < cartData.items.length && (
+              <p style={{color:'#64748b', fontSize:13, marginBottom:12}}>{checkedItems.length} of {cartData.items.length} items selected</p>
+            )}
+            <button
+              onClick={() => {
+                localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
+                navigate('/checkout')
+              }}
+              disabled={checkedItems.length === 0}
+              style={{...styles.submitBtn, opacity: checkedItems.length === 0 ? 0.5 : 1}}
+            >
+              {t('proceedToCheckout')} ({checkedItems.length} item{checkedItems.length !== 1 ? 's' : ''})
+            </button>
           </div>
         </>
       )}
@@ -853,194 +1319,338 @@ function Cart({ onCartUpdate, t = (k) => k }) {
 function Checkout({ t = (k) => k, language = 'EN' }) {
   const ar = language === 'AR'
   const [form, setForm] = useState({
-    name: '',
-    zone: '',
-    street: '',
-    building: '',
-    unit: '',
-    city: 'Doha',
-    country: 'Qatar',
-    phone: '',
-    // Delivery instructions
-    altPhone: '',
-    preferredTime: 'any',
-    receiverName: '',
-    deliveryNotes: ''
+    name: '', zone: '', street: '', building: '', unit: '',
+    city: 'Doha', country: 'Qatar', phone: '',
+    altPhone: '', preferredTime: 'any', receiverName: '', deliveryNotes: ''
   })
+  const [addressConfirmed, setAddressConfirmed] = useState(false)
+  const [editingAddress, setEditingAddress] = useState(true)
   const [paymentMethod, setPaymentMethod] = useState('cod')
-  const [cardForm, setCardForm] = useState({ cardName: '', cardNumber: '', expiry: '', cvv: '' })
   const [cartData, setCartData] = useState({ items: [], total: 0 })
+  const [selectedItems, setSelectedItems] = useState([])
   const [loadingCart, setLoadingCart] = useState(true)
-  const total = cartData.total || 0
-  const deliveryFee = total >= 1000 ? 0 : 15
-  const vatAmount = 0
-  const grandTotal = total + deliveryFee + vatAmount
   const [placing, setPlacing] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
-    cart.get().then(r => { setCartData(r.data); setLoadingCart(false) })
+    cart.get().then(r => {
+      setCartData(r.data)
+      setSelectedItems((r.data.items || []).map(i => i.id))
+      setLoadingCart(false)
+    })
+    // Pre-fill address from last order if user has one
+    const saved = localStorage.getItem('jaspr_last_address')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setForm(f => ({ ...f, ...parsed }))
+        setEditingAddress(false)
+        setAddressConfirmed(true)
+      } catch {}
+    }
   }, [])
 
-  const formatCardNumber = (val) => val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
-  const formatExpiry = (val) => {
-    const clean = val.replace(/\D/g, '').slice(0, 4)
-    if (clean.length >= 3) return clean.slice(0, 2) + '/' + clean.slice(2)
-    return clean
+  const checkedItems = cartData.items.filter(i => selectedItems.includes(i.id))
+  const subtotal = checkedItems.reduce((s, i) => s + (i.product.price * i.quantity), 0)
+  const deliveryFee = subtotal >= 1000 ? 0 : 15
+
+  const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponMsg, setCouponMsg] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return
+    setCouponLoading(true); setCouponMsg('')
+    try {
+      const res = await fetch(`${API_ORIGIN}/api/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ code: couponCode.trim(), subtotal })
+      })
+      const data = await res.json()
+      if (res.ok && data.discount) {
+        setCouponDiscount(data.discount)
+        setCouponMsg(`✅ Coupon applied! You save QAR ${data.discount.toFixed(2)}`)
+      } else {
+        setCouponDiscount(0)
+        setCouponMsg(data.error || 'Invalid or expired coupon code.')
+      }
+    } catch {
+      setCouponDiscount(0)
+      setCouponMsg('Coupon service unavailable. Please try again.')
+    }
+    setCouponLoading(false)
+  }
+
+  const grandTotal = subtotal + deliveryFee - couponDiscount
+
+  const toggleItem = (id) => {
+    setSelectedItems(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
   const handlePlaceOrder = async () => {
     if (!form.name || !form.zone || !form.street || !form.building || !form.phone) {
-      setError(ar ? 'يرجى تعبئة الاسم والمنطقة والشارع والمبنى ورقم الهاتف' : 'Please fill name, zone, street, building and phone')
+      setError(ar ? 'يرجى تعبئة الاسم والمنطقة والشارع والمبنى ورقم الهاتف' : 'Please fill: Full Name, Zone No., Street No., Building No. and Phone')
+      return
+    }
+    if (checkedItems.length === 0) {
+      setError('Please select at least one item to order.')
       return
     }
     setPlacing(true); setError('')
+    localStorage.setItem('jaspr_last_address', JSON.stringify(form))
     try {
-      // Create the order first (works for both COD and card).
-      const res = await orders.place({ shippingAddress: form, paymentMethod })
-      const orderId = res.data.order.id
-
-      if (paymentMethod === 'card') {
-        // Card → start a MyFatoorah payment for this order, then redirect to
-        // the secure hosted page. We never handle card numbers ourselves.
-        const pay = await payments.orderPayment({ orderId })
-        if (pay.data.paymentUrl) {
-          window.location = pay.data.paymentUrl
-          return
-        }
-        // If we couldn't get a payment URL, the order still exists as PENDING.
-        setError('Could not start card payment. Your order is saved; please try paying again from My Orders.')
+      const res = await orders.place({
+        shippingAddress: form,
+        paymentMethod,
+        itemIds: selectedItems,
+        couponCode: couponCode.trim() || undefined,
+      })
+      const orderId = res.data?.order?.id || res.data?.id
+      if (!orderId) {
+        setError('Order created but ID missing. Please check My Orders.')
         setPlacing(false)
         return
       }
 
-      // COD → straight to the order page.
+      // If only SOME items were selected, remove only the ordered ones from cart
+      // so the unselected ones remain for later
+      const hasUnselected = cartData.items.some(i => !selectedItems.includes(i.id))
+      if (hasUnselected) {
+        for (const item of checkedItems) {
+          try { await cart.remove(item.product.id) } catch {}
+        }
+      }
+      // If ALL items selected, backend order clears cart normally
+
+      if (paymentMethod === 'card') {
+        try {
+          const pay = await payments.orderPayment({ orderId })
+          // Handle all MyFatoorah response field variations
+          const url = pay.data?.paymentUrl
+            || pay.data?.PaymentURL
+            || pay.data?.invoiceURL
+            || pay.data?.InvoiceURL
+            || pay.data?.data?.PaymentURL
+            || pay.data?.Data?.PaymentURL
+          console.log('Payment gateway response:', JSON.stringify(pay.data))
+          if (url) { await Browser.open({ url }); return }
+          console.error('No payment URL found in response:', pay.data)
+          setError('Payment gateway did not return a URL. Your order is saved — try paying from My Orders.')
+          setPlacing(false); return
+        } catch (payErr) {
+          console.error('Payment gateway error:', payErr?.response?.data || payErr)
+          console.log('Full payment error:', JSON.stringify(payErr?.response?.data))
+const payMsg = payErr?.response?.data?.error || payErr?.response?.data?.message || 'Gateway error'
+          setError(`Card payment failed: ${payMsg}. Your order is saved — try from My Orders or use Cash on Delivery.`)
+          setPlacing(false); return
+        }
+      }
+
       navigate(`/orders/${orderId}`)
     } catch (err) {
-      setError(err.response?.data?.error || t('orderFailed'))
+      console.error('Checkout error:', err?.response?.data || err?.message || err)
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || t('orderFailed')
+      setError(`Order failed: ${msg}`)
       setPlacing(false)
     }
+  }
+
+  const getProductImage = (item) => {
+    const img = item.product?.images?.[0]?.url || item.product?.image || item.product?.imageUrl || ''
+    return img || null
   }
 
   return (
     <div style={{...styles.page, maxWidth:900}}>
       <h2 style={{marginBottom:8}}>{t('checkout')}</h2>
       {error && <p style={styles.error}>{error}</p>}
-      <div style={{display:'flex', gap:40, flexWrap:'wrap'}}>
+      <div style={{display:'flex', gap:28, flexWrap:'wrap'}}>
+
+        {/* LEFT — address + payment */}
         <div style={{flex:1, minWidth:280}}>
-          <h3 style={{marginBottom:16, fontSize:18}}>{ar ? 'عنوان التوصيل' : 'Delivery Address'}</h3>
-          <input style={styles.input} placeholder={ar ? 'الاسم الكامل' : 'Full Name'} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
 
-          {/* Qatari address: Zone / Street / Building are the national format */}
-          <div style={{display:'flex', gap:12}}>
-            <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم المنطقة' : 'Zone No.'} value={form.zone} onChange={e => setForm({...form, zone: e.target.value})} />
-            <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم الشارع' : 'Street No.'} value={form.street} onChange={e => setForm({...form, street: e.target.value})} />
-          </div>
-          <div style={{display:'flex', gap:12}}>
-            <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم المبنى' : 'Building No.'} value={form.building} onChange={e => setForm({...form, building: e.target.value})} />
-            <input style={{...styles.input, flex:1}} placeholder={ar ? 'الوحدة / الشقة (اختياري)' : 'Unit / Apt (optional)'} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} />
-          </div>
-          <div style={{display:'flex', gap:12}}>
-            <input style={{...styles.input, flex:1}} placeholder={ar ? 'المدينة' : 'City'} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
-            <input style={{...styles.input, flex:1}} placeholder={ar ? 'الدولة' : 'Country'} value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
-          </div>
-          <input style={styles.input} placeholder={ar ? 'رقم الهاتف' : 'Phone Number'} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+          {/* Address section */}
+          <div style={{background:'#f8f9fa', borderRadius:12, padding:18, marginBottom:20}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: editingAddress ? 16 : 0}}>
+              <h3 style={{fontSize:17, margin:0}}>{ar ? 'عنوان التوصيل' : 'Delivery Address'}</h3>
+              {addressConfirmed && !editingAddress && (
+                <button onClick={() => setEditingAddress(true)} style={{background:'none', border:'1px solid #f97316', color:'#f97316', borderRadius:6, padding:'4px 12px', cursor:'pointer', fontSize:13, fontWeight:600}}>
+                  Edit
+                </button>
+              )}
+            </div>
 
-          {/* Delivery preferences */}
-          <h3 style={{marginBottom:12, marginTop:8, fontSize:18}}>{ar ? 'تعليمات التوصيل (اختياري)' : 'Delivery Instructions (optional)'}</h3>
-          <select style={styles.input} value={form.preferredTime} onChange={e => setForm({...form, preferredTime: e.target.value})}>
-            <option value="any">{ar ? 'أي وقت' : 'Any time'}</option>
-            <option value="morning">{ar ? 'صباحاً (٨ص - ١٢م)' : 'Morning (8am - 12pm)'}</option>
-            <option value="afternoon">{ar ? 'ظهراً (١٢م - ٤م)' : 'Afternoon (12pm - 4pm)'}</option>
-            <option value="evening">{ar ? 'مساءً (٤م - ٩م)' : 'Evening (4pm - 9pm)'}</option>
-          </select>
-          <input style={styles.input} placeholder={ar ? 'رقم بديل للتواصل أثناء التوصيل' : 'Alternative contact number for delivery'} value={form.altPhone} onChange={e => setForm({...form, altPhone: e.target.value})} />
-          <input style={styles.input} placeholder={ar ? 'اسم المستلم البديل (إن وُجد)' : 'Receiver name (if someone else)'} value={form.receiverName} onChange={e => setForm({...form, receiverName: e.target.value})} />
-          <textarea style={{...styles.input, minHeight:70, resize:'vertical', fontFamily:'inherit'}} placeholder={ar ? 'ملاحظات أخرى (مثال: اترك مع الحارس، اتصل قبل الوصول)' : 'Other notes (e.g. leave with security, call before arriving)'} value={form.deliveryNotes} onChange={e => setForm({...form, deliveryNotes: e.target.value})} />
+            {/* Confirmed address summary */}
+            {addressConfirmed && !editingAddress ? (
+              <div style={{fontSize:14, color:'#334155', lineHeight:1.8}}>
+                <strong>{form.name}</strong><br/>
+                Zone {form.zone}, Street {form.street}, Bldg {form.building}{form.unit ? `, Unit ${form.unit}` : ''}<br/>
+                {form.city}, {form.country}<br/>
+                📞 {form.phone}
+                {form.deliveryNotes && <><br/><span style={{color:'#64748b'}}>📝 {form.deliveryNotes}</span></>}
+              </div>
+            ) : (
+              <>
+                <input style={styles.input} placeholder={ar ? 'الاسم الكامل' : 'Full Name'} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                <div style={{display:'flex', gap:12}}>
+                  <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم المنطقة' : 'Zone No.'} value={form.zone} onChange={e => setForm({...form, zone: e.target.value})} />
+                  <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم الشارع' : 'Street No.'} value={form.street} onChange={e => setForm({...form, street: e.target.value})} />
+                </div>
+                <div style={{display:'flex', gap:12}}>
+                  <input style={{...styles.input, flex:1}} placeholder={ar ? 'رقم المبنى' : 'Building No.'} value={form.building} onChange={e => setForm({...form, building: e.target.value})} />
+                  <input style={{...styles.input, flex:1}} placeholder={ar ? 'الوحدة / الشقة (اختياري)' : 'Unit / Apt (optional)'} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} />
+                </div>
+                <div style={{display:'flex', gap:12}}>
+                  <input style={{...styles.input, flex:1}} placeholder={ar ? 'المدينة' : 'City'} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+                  <input style={{...styles.input, flex:1}} placeholder={ar ? 'الدولة' : 'Country'} value={form.country} onChange={e => setForm({...form, country: e.target.value})} />
+                </div>
+                <input style={styles.input} placeholder={ar ? 'رقم الهاتف' : 'Phone Number'} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+                <select style={styles.input} value={form.preferredTime} onChange={e => setForm({...form, preferredTime: e.target.value})}>
+                  <option value="any">{ar ? 'أي وقت' : 'Any time'}</option>
+                  <option value="morning">{ar ? 'صباحاً (٨ص - ١٢م)' : 'Morning (8am - 12pm)'}</option>
+                  <option value="afternoon">{ar ? 'ظهراً (١٢م - ٤م)' : 'Afternoon (12pm - 4pm)'}</option>
+                  <option value="evening">{ar ? 'مساءً (٤م - ٩م)' : 'Evening (4pm - 9pm)'}</option>
+                </select>
+                <input style={styles.input} placeholder={ar ? 'رقم بديل' : 'Alternative phone (optional)'} value={form.altPhone} onChange={e => setForm({...form, altPhone: e.target.value})} />
+                <input style={styles.input} placeholder={ar ? 'اسم المستلم البديل' : 'Receiver name if different'} value={form.receiverName} onChange={e => setForm({...form, receiverName: e.target.value})} />
+                <textarea style={{...styles.input, minHeight:60, resize:'vertical', fontFamily:'inherit'}} placeholder={ar ? 'ملاحظات التوصيل' : 'Delivery notes (optional)'} value={form.deliveryNotes} onChange={e => setForm({...form, deliveryNotes: e.target.value})} />
+                <button onClick={() => { setAddressConfirmed(true); setEditingAddress(false) }} style={{...styles.submitBtn, marginBottom:0, background:'#0f1923'}}>
+                  ✓ {ar ? 'تأكيد العنوان' : 'Confirm Address'}
+                </button>
+              </>
+            )}
+          </div>
 
-          <h3 style={{marginBottom:16, marginTop:8, fontSize:18}}>{t('paymentMethod')}</h3>
+          {/* Payment method */}
+          <h3 style={{marginBottom:12, fontSize:17}}>{t('paymentMethod')}</h3>
           <div onClick={() => setPaymentMethod('cod')} style={{padding:'14px 16px', border: paymentMethod === 'cod' ? '2px solid #f97316' : '2px solid #eee', borderRadius:8, marginBottom:12, background: paymentMethod === 'cod' ? '#fff7ed' : '#fff', cursor:'pointer'}}>
             <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}}>
               <input type="radio" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
-              <span style={{color:'#0f1923', fontWeight:600}}>{t('cashOnDelivery')}</span>
+              <div>
+                <div style={{fontWeight:600}}>💵 {t('cashOnDelivery')}</div>
+                <div style={{fontSize:12, color:'#64748b'}}>Pay when your order arrives</div>
+              </div>
             </label>
           </div>
           <div onClick={() => setPaymentMethod('card')} style={{border: paymentMethod === 'card' ? '2px solid #f97316' : '2px solid #eee', borderRadius:8, marginBottom:24, background: paymentMethod === 'card' ? '#fff7ed' : '#fff', cursor:'pointer', overflow:'hidden'}}>
             <div style={{padding:'14px 16px'}}>
               <label style={{display:'flex', alignItems:'center', gap:10, cursor:'pointer'}}>
                 <input type="radio" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} />
-                <span style={{color:'#0f1923', fontWeight:600}}>{t('creditDebitCard')}</span>
+                <div>
+                  <div style={{fontWeight:600}}>💳 {t('creditDebitCard')}</div>
+                  <div style={{fontSize:12, color:'#64748b'}}>Visa, Mastercard — secured by MyFatoorah</div>
+                </div>
               </label>
             </div>
             {paymentMethod === 'card' && (
-              <div style={{padding:'0 16px 16px', borderTop:'1px solid #f0e0d0'}} onClick={e => e.stopPropagation()}>
-                <p style={{marginTop:12, fontSize:13, color:'#64748b', lineHeight:1.5}}>
-                  {t('cardRedirectNote') !== 'cardRedirectNote'
-                    ? t('cardRedirectNote')
-                    : "You'll be redirected to our secure payment page to complete your card payment. We never store your card details."}
-                </p>
-                <div style={{display:'flex', alignItems:'center', gap:8, marginTop:8}}>
-                  <span style={{fontSize:11, color:'#94a3b8'}}>🔒 Secured by MyFatoorah</span>
-                </div>
+              <div style={{padding:'0 16px 14px', borderTop:'1px solid #f0e0d0', fontSize:13, color:'#64748b'}}>
+                🔒 You'll be redirected to a secure payment page. We never store card details.
               </div>
             )}
           </div>
-          <button onClick={handlePlaceOrder} disabled={placing} style={{...styles.submitBtn, opacity: placing ? 0.7 : 1}}>
-            {placing ? t('placingOrder') : t('placeOrder')}
+
+          <button onClick={handlePlaceOrder} disabled={placing || checkedItems.length === 0} style={{...styles.submitBtn, opacity: (placing || checkedItems.length === 0) ? 0.6 : 1}}>
+            {placing ? t('placingOrder') : `${t('placeOrder')} (${checkedItems.length} item${checkedItems.length !== 1 ? 's' : ''})`}
           </button>
         </div>
-        <div style={{width:280}}>
-          <h3 style={{marginBottom:16, fontSize:18}}>{t('orderSummary')}</h3>
-          <div style={{background:'#f8f9fa', borderRadius:12, padding:20, color:'#0f1923'}}>
-            {loadingCart ? <p>{t('loading')}</p> : cartData.items.map(item => (
-              <div key={item.id} style={{display:'flex', justifyContent:'space-between', marginBottom:12, fontSize:14}}>
-                <span style={{flex:1, marginRight:8}}>{item.product.name} x {item.quantity}</span>
-                <span style={{fontWeight:600}}>{formatQAR(item.product.price * item.quantity)}</span>
+
+        {/* RIGHT — order summary with checkboxes and thumbnails */}
+        <div style={{width: window.innerWidth <= 768 ? '100%' : 300}}>
+          <h3 style={{marginBottom:12, fontSize:17}}>{t('orderSummary')}</h3>
+          <div style={{background:'#f8f9fa', borderRadius:12, padding:16, color:'#0f1923'}}>
+            {loadingCart ? <p>{t('loading')}</p> : cartData.items.map(item => {
+              const checked = selectedItems.includes(item.id)
+              const img = getProductImage(item)
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => toggleItem(item.id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:10, marginBottom:12,
+                    padding:'8px 10px', borderRadius:10, cursor:'pointer',
+                    background: checked ? '#fff' : '#f0f0f0',
+                    border: checked ? '1.5px solid #f97316' : '1.5px solid #e2e8f0',
+                    opacity: checked ? 1 : 0.55,
+                    transition:'all 0.15s'
+                  }}
+                >
+                  {/* Checkbox */}
+                  <div style={{
+                    width:20, height:20, borderRadius:4, border:'2px solid',
+                    borderColor: checked ? '#f97316' : '#cbd5e1',
+                    background: checked ? '#f97316' : '#fff',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    flexShrink:0
+                  }}>
+                    {checked && <span style={{color:'#fff', fontSize:12, lineHeight:1}}>✓</span>}
+                  </div>
+                  {/* Thumbnail */}
+                  {img ? (
+                    <img src={img} alt={item.product.name} style={{width:44, height:44, objectFit:'cover', borderRadius:6, flexShrink:0, background:'#eee'}} />
+                  ) : (
+                    <div style={{width:44, height:44, borderRadius:6, background:'#e2e8f0', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18}}>📦</div>
+                  )}
+                  {/* Name + price */}
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:12, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{item.product.name}</div>
+                    <div style={{fontSize:11, color:'#64748b'}}>x{item.quantity}</div>
+                  </div>
+                  <div style={{fontSize:13, fontWeight:700, color:'#f97316', flexShrink:0}}>{formatQAR(item.product.price * item.quantity)}</div>
+                </div>
+              )
+            })}
+
+            <div style={{borderTop:'1px solid #ddd', paddingTop:14, marginTop:8}}>
+
+              {/* Coupon code */}
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:13, fontWeight:600, marginBottom:8, color:'#0f1923'}}>🏷️ Coupon Code</div>
+                <div style={{display:'flex', gap:8}}>
+                  <input
+                    style={{flex:1, padding:'9px 12px', borderRadius:8, border:'1.5px solid #e2e8f0', fontSize:13, outline:'none', fontFamily:'inherit'}}
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponDiscount(0); setCouponMsg('') }}
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                    style={{padding:'9px 14px', borderRadius:8, border:'none', background:'#f97316', color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', opacity: (!couponCode.trim() || couponLoading) ? 0.6 : 1}}
+                  >
+                    {couponLoading ? '…' : 'Apply'}
+                  </button>
+                </div>
+                {couponMsg && (
+                  <div style={{fontSize:12, marginTop:6, color: couponDiscount > 0 ? '#16a34a' : '#dc2626'}}>{couponMsg}</div>
+                )}
               </div>
-            ))}
-            <div style={{borderTop:'1px solid #ddd', paddingTop:14, marginTop:14}}>
 
-  <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
-    <span>Subtotal</span>
-    <strong>{formatQAR(total)}</strong>
-  </div>
-
-  <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
-    <span>Delivery</span>
-    <strong>{deliveryFee === 0 ? 'Free' : formatQAR(deliveryFee)}</strong>
-  </div>
-
-<p style={{
-  fontSize:12,
-  color:'#666',
-  marginTop:-4,
-  marginBottom:12
-}}>
-  Free delivery on orders above QAR 1,000
-</p>
-
-  <div style={{display:'flex', justifyContent:'space-between', marginBottom:14}}>
-    <span>VAT</span>
-    <strong>Included</strong>
-  </div>
-
-  <div style={{
-    display:'flex',
-    justifyContent:'space-between',
-    paddingTop:14,
-    borderTop:'1px solid #eee',
-    fontSize:18,
-    fontWeight:700,
-    color:'#f97316'
-  }}>
-    <span>Total</span>
-    <span>{formatQAR(grandTotal)}</span>
-  </div>
-
-</div>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:14}}>
+                <span>Subtotal ({checkedItems.length} items)</span>
+                <strong>{formatQAR(subtotal)}</strong>
+              </div>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:14}}>
+                <span>Delivery</span>
+                <strong style={{color: deliveryFee === 0 ? '#16a34a' : 'inherit'}}>{deliveryFee === 0 ? 'Free 🎉' : formatQAR(deliveryFee)}</strong>
+              </div>
+              {deliveryFee > 0 && <p style={{fontSize:11, color:'#94a3b8', marginTop:-4, marginBottom:8}}>Free delivery on orders above QAR 1,000</p>}
+              {couponDiscount > 0 && (
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:8, fontSize:14, color:'#16a34a'}}>
+                  <span>Coupon Discount</span>
+                  <strong>- {formatQAR(couponDiscount)}</strong>
+                </div>
+              )}
+              <div style={{display:'flex', justifyContent:'space-between', paddingTop:12, borderTop:'1px solid #eee', fontSize:17, fontWeight:700, color:'#f97316'}}>
+                <span>Total</span>
+                <span>{formatQAR(grandTotal)}</span>
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   )
@@ -1075,11 +1685,12 @@ function OrderDetail({ t = (k) => k }) {
         <div style={{display:'flex', justifyContent:'space-between', marginBottom:16}}>
           <span style={{color:'#666'}}>Payment</span>
           <span style={{fontWeight:700}}>
-            {order.shippingAddress?.paymentMethod === 'card' || order.paymentRef ? (
-              <span style={{color:'#16a34a'}}>💳 Card · Paid</span>
-            ) : (
-              <span style={{color:'#92400e'}}>💵 Cash on Delivery</span>
-            )}
+            {order.shippingAddress?.paymentMethod === 'card'
+              ? (order.status === 'PENDING' && !order.paymentRef
+                  ? <span style={{color:'#f97316'}}>💳 Card · Awaiting Payment</span>
+                  : <span style={{color:'#16a34a'}}>💳 Card · Paid</span>)
+              : <span style={{color:'#92400e'}}>💵 Cash on Delivery</span>
+            }
           </span>
         </div>
         {/* Vendor(s) */}
@@ -1131,13 +1742,46 @@ function OrderDetail({ t = (k) => k }) {
           <p style={{color:'#f97316', fontWeight:600}}>{formatQAR(item.unitPrice * item.quantity)}</p>
         </div>
       ))}
-      <div style={{display:'flex', gap:12, marginTop:32}}>
-        <button onClick={() => navigate('/orders')} style={{...styles.submitBtn, flex:1}}>{t('myOrders')}</button>
-        <button onClick={() => navigate('/products')} style={{...styles.submitBtn, flex:1, background:'#1e3a5f'}}>{t('continueShopping')}</button>
+     <div style={{display:'flex', gap:12, marginTop:32, flexDirection:'column'}}>
+        {(order.status === 'PENDING' && order.shippingAddress?.paymentMethod === 'card' && !order.paymentRef) && (
+          <>
+            <button onClick={async () => {
+              try {
+                const pay = await payments.orderPayment({ orderId: order.id })
+                const url = pay.data?.paymentUrl || pay.data?.PaymentURL || pay.data?.invoiceURL || pay.data?.InvoiceURL
+                if (url) { await Browser.open({ url }); return }
+                alert('Could not get payment URL. Please try again.')
+              } catch (e) {
+                alert('Payment error: ' + (e?.response?.data?.error || e.message || 'Please try again.'))
+              }
+            }} style={{...styles.submitBtn, background:'#16a34a', fontSize:16, padding:'14px'}}>
+              💳 Pay Now
+            </button>
+            <button onClick={async () => {
+              try {
+                // Re-fetch order to check if payment completed
+                const updated = await orders.getOne(order.id)
+                if (updated.data?.status === 'CONFIRMED') {
+                  window.location.reload()
+                } else {
+                  alert('Payment not confirmed yet. If you completed payment, please wait a moment and try again.')
+                }
+              } catch (e) {
+                alert('Could not check status. Please try again.')
+              }
+            }} style={{...styles.submitBtn, background:'#1e3a5f', fontSize:14, padding:'12px'}}>
+              🔄 Check Payment Status
+            </button>
+          </>
+        )}
+        <div style={{display:'flex', gap:12}}>
+          <button onClick={() => navigate('/orders')} style={{...styles.submitBtn, flex:1}}>{t('myOrders')}</button>
+          <button onClick={() => navigate('/products')} style={{...styles.submitBtn, flex:1, background:'#1e3a5f'}}>{t('continueShopping')}</button>
+        </div>
       </div>
     </div>
-  )
-}
+    )
+  }
 
 function Orders({ user, t = (k) => k }) {
   const [orderList, setOrderList] = useState([])
@@ -1146,7 +1790,18 @@ function Orders({ user, t = (k) => k }) {
   const navigate = useNavigate()
 
   const loadOrders = () => {
-    orders.getAll().then(r => { setOrderList(r.data); setLoading(false) })
+    if (!localStorage.getItem('token')) {
+      setOrderList([])
+      setLoading(false)
+      return
+    }
+
+    orders.getAll()
+      .then(r => { setOrderList(Array.isArray(r.data) ? r.data : []); setLoading(false) })
+      .catch(() => {
+        setOrderList([])
+        setLoading(false)
+      })
   }
 
   useEffect(() => { loadOrders() }, [])
@@ -1197,6 +1852,7 @@ function Orders({ user, t = (k) => k }) {
 
 function ProductDetail({ user, t = (k) => k, language = 'EN' }) {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [added, setAdded] = useState(false)
@@ -1272,7 +1928,7 @@ function ProductDetail({ user, t = (k) => k, language = 'EN' }) {
   if (!product) return <p style={{padding:40}}>{t('productNotFound')}</p>
 
   const images = (product.images || []).filter(Boolean)
-  const getImgSrc = (img) => img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+  const getImgSrc = (img) => getImageSrc(img)
   const userReview = reviews.find(r => r.userId === user?.id)
   const cond = conditionLabel(product.condition, language)
   const avgRating = Math.round(product.avgRating || 0)
@@ -1299,26 +1955,55 @@ function ProductDetail({ user, t = (k) => k, language = 'EN' }) {
   Your item has been successfully added to cart.
 </p>
         <div style={{display:'flex',gap:12}}>
-          <button onClick={()=>setShowCartModal(false)} style={{flex:1,padding:'12px',border:'2px solid #f97316',borderRadius:8,background:'#fff',color:'#f97316',fontWeight:600,cursor:'pointer'}}>{t('continueShopping')}</button>
-          <button onClick={()=>{setShowCartModal(false);window.location.href='/checkout'}} style={{flex:1,padding:'12px',border:'none',borderRadius:8,background:'#f97316',color:'#fff',fontWeight:600,cursor:'pointer'}}>{t('goToCheckout')}</button>
+          <button onClick={()=>{setShowCartModal(false); navigate('/products')}} style={{flex:1,padding:'12px',border:'2px solid #f97316',borderRadius:8,background:'#fff',color:'#f97316',fontWeight:600,cursor:'pointer'}}>{t('continueShopping')}</button>
+          <button onClick={()=>{setShowCartModal(false); navigate('/cart')}} style={{flex:1,padding:'12px',border:'none',borderRadius:8,background:'#f97316',color:'#fff',fontWeight:600,cursor:'pointer'}}>{t('goToCheckout')}</button>
         </div>
       </div>
     </div>
   )
 
   return (
-    <div style={{...styles.page, maxWidth:1000}}>
+    <div style={{...styles.page, maxWidth:1000, position:'relative'}}>
       {cartModal}
 
+      {/* Back / close button — goes back to shopping */}
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12}}>
+        <button
+          onClick={() => navigate('/products')}
+          style={{
+            display:'inline-flex', alignItems:'center', gap:6,
+            padding:'8px 14px', borderRadius:10,
+            background:'#fff', border:'1px solid #e2e8f0',
+            color:'#0f1923', fontWeight:600, fontSize:14, cursor:'pointer'
+          }}
+          aria-label={language === 'AR' ? 'رجوع' : 'Back'}
+        >
+          <span style={{fontSize:18, lineHeight:1}}>←</span>
+          <span>{language === 'AR' ? 'العودة للتسوق' : 'Back to Shopping'}</span>
+        </button>
+        <button
+          onClick={() => navigate('/products')}
+          style={{
+            width:38, height:38, borderRadius:'50%',
+            background:'#fff', border:'1px solid #e2e8f0',
+            fontSize:22, lineHeight:1, color:'#0f1923', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            boxShadow:'0 2px 6px rgba(0,0,0,0.06)'
+          }}
+          aria-label={language === 'AR' ? 'إغلاق' : 'Close'}
+        >×</button>
+      </div>
+
       {/* Main product grid */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:40, marginBottom:40, flexWrap:'wrap'}}>
+      <div style={{display:'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr', gap: window.innerWidth <= 768 ? 20 : 40, marginBottom:40}}>
 
         {/* Left — Images */}
         <div>
           <div
             style={{
               width:'100%',
-              minHeight:430,
+              minHeight: window.innerWidth <= 768 ? 260 : 430,
+              maxHeight: window.innerWidth <= 768 ? 300 : 500,
               background:'#f8f9fa',
               borderRadius:16,
               border:'1px solid #eee',
@@ -1423,7 +2108,7 @@ function ProductDetail({ user, t = (k) => k, language = 'EN' }) {
   style={{
     width:'100%',
     height:'100%',
-    maxHeight:430,
+    maxHeight: window.innerWidth <= 768 ? 260 : 430,
     objectFit:'contain',
     display:'block',
     transition:'transform 0.3s ease, opacity 0.25s ease',
@@ -2639,7 +3324,7 @@ function VendorDashboard({ t = (k) => k, language = 'EN' }) {
   }
 
 const loadDocs = () => {
-  fetch('http://localhost:3000/api/vendors/documents', {
+  fetch(`${API_ORIGIN}/api/vendors/documents`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
   }).then(r => r.json()).then(data => {
     if (Array.isArray(data)) setDocs(data)
@@ -2697,7 +3382,7 @@ const loadDocs = () => {
       formData.append('document', docFile)
       formData.append('docType', docType)
       formData.append('docName', docFile.name)
-      const res = await fetch('http://localhost:3000/api/vendors/documents/upload', {
+      const res = await fetch(`${API_ORIGIN}/api/vendors/documents/upload`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: formData
@@ -2712,7 +3397,7 @@ const loadDocs = () => {
 
   const handleSaveBankDetails = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/vendors/bank-details', {
+      const res = await fetch(`${API_ORIGIN}/api/vendors/bank-details`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
         body: JSON.stringify(bankForm)
@@ -2873,12 +3558,12 @@ if (false && store && store.status === 'PENDING') return (
           ) : (
             <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:16}}>
               {store.products.map(p => {
-                const imgSrc = p.images?.[0] ? (p.images[0].startsWith('http') ? p.images[0] : `http://localhost:3000${p.images[0]}`) : null
+                const imgSrc = getProductImageSrc(p)
                 const cond = conditionLabel(p.condition)
                 return (
                   <div key={p.id} style={{border:'1px solid #eee', borderRadius:12, overflow:'hidden', background:'#fff'}}>
                     <div style={{height:140, background:'#f8f9fa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:48, overflow:'hidden'}}>
-                      {imgSrc ? <img src={imgSrc} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} /> : '📱'}
+                      <img src={imgSrc || FALLBACK_IMG} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }} />
                     </div>
                     <div style={{padding:16}}>
                       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
@@ -3429,6 +4114,56 @@ function App() {
     localStorage.setItem('language', language)
   }, [language])
 
+  // ── Deep link handler ────────────────────────────────────────
+  // When MyFatoorah redirects to com.jasprmarket.app://payment-success?paymentId=XXXX
+  // Android closes the browser and fires appUrlOpen — we verify the payment here.
+  useEffect(() => {
+    let listener = null
+    const setupDeepLink = async () => {
+      try {
+        listener = await CapApp.addListener('appUrlOpen', async (event) => {
+          const url = event.url || ''
+          // Parse the deep link URL
+          // e.g. com.jasprmarket.app://payment-success?paymentId=XXXX&orderId=YYY
+          if (url.includes('payment-success')) {
+            const queryString = url.split('?')[1] || ''
+            const params = new URLSearchParams(queryString)
+            const paymentId = params.get('paymentId')
+            const orderId = params.get('orderId')
+
+            if (paymentId) {
+              try {
+                const result = await payments.verify(paymentId)
+                if (result.data?.success) {
+                  // Navigate to order confirmation
+                  const targetOrderId = orderId || result.data?.orderId
+                  if (targetOrderId) {
+                    window.location.href = `/orders/${targetOrderId}`
+                  } else {
+                    window.location.href = '/orders'
+                  }
+                } else {
+                  window.location.href = '/orders'
+                }
+              } catch (e) {
+                console.error('Deep link verify error:', e)
+                window.location.href = '/orders'
+              }
+            }
+          } else if (url.includes('payment-failed')) {
+            // Payment failed — go back to orders so user can retry
+            window.location.href = '/orders'
+          }
+        })
+      } catch (e) {
+        // CapApp not available in web browser — safe to ignore
+        console.log('Deep link listener not available (web mode)')
+      }
+    }
+    setupDeepLink()
+    return () => { if (listener) listener.remove() }
+  }, [])
+
   // Theme (light / dark)
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light')
   useEffect(() => {
@@ -3513,6 +4248,7 @@ useEffect(() => {
         <Route path="/products/:id" element={<ProductDetail user={user} t={t} language={language} />} />
         <Route path="/login" element={<Login onLogin={setUser} t={t} />} />
         <Route path="/register" element={<Register onLogin={setUser} t={t} />} />
+        <Route path="/profile" element={<Profile user={user} onLogout={() => setUser(null)} t={t} language={language} />} />
         <Route path="/cart" element={<Cart onCartUpdate={setCartCount} t={t} />} />
         <Route path="/payment-success" element={<PaymentSuccess t={t} language={language} />} />
         <Route path="/payment-failed" element={<PaymentFailed t={t} language={language} />} />
@@ -3643,7 +4379,7 @@ function MobileBottomNav({ cartCount = 0, t = (k) => k }) {
       </Link>
 
       <Link
-        to="/vendor"
+        to={localStorage.getItem('token') ? '/profile' : '/login'}
         style={{
           color:'#fff',
           textDecoration:'none',
@@ -3713,7 +4449,7 @@ function RecentlyViewedStrip({ items = [], t = (k) => k }) {
       <div style={{display:'flex', gap:14, overflowX:'auto', paddingBottom:6}}>
         {matched.map(p => {
           const img = p.images?.[0]
-          const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+          const src = getImageSrc(img)
           return (
             <Link
               key={p.id}
@@ -3722,7 +4458,7 @@ function RecentlyViewedStrip({ items = [], t = (k) => k }) {
             >
               <div className="jm-card-img" style={{width:110, height:110, borderRadius:12, background:'#f8fafc', border:'1px solid #eef0f3', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', marginBottom:6}}>
                 {src ? (
-                  <img src={src} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} />
+                  <img src={src || FALLBACK_IMG} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }} />
                 ) : (
                   <span style={{fontSize:36}}>📱</span>
                 )}
@@ -3823,11 +4559,11 @@ function CartDrawer({ open, onClose, t = (k) => k, onCartUpdate, language = 'EN'
             </div>
           ) : items.map(i => {
             const img = i.product?.images?.[0]
-            const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+            const src = getImageSrc(img)
             return (
               <div key={i.productId || i.product?.id} style={{display:'flex', gap:12, padding:'12px 0', borderBottom:'1px solid #f1f5f9'}}>
                 <div className="jm-card-img" style={{width:64, height:64, borderRadius:10, background:'#f8fafc', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0}}>
-                  {src ? <img src={src} alt="" style={{width:'100%', height:'100%', objectFit:'contain'}} /> : <span style={{fontSize:24}}>📱</span>}
+                  <img src={src || FALLBACK_IMG} alt="" style={{width:'100%', height:'100%', objectFit:'contain'}} onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }} />
                 </div>
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{fontSize:13, fontWeight:600, color:'#0f1923', marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
@@ -3854,7 +4590,7 @@ function CartDrawer({ open, onClose, t = (k) => k, onCartUpdate, language = 'EN'
               <span style={{fontSize:18, fontWeight:800, color:'#f97316'}}>{formatQAR(total)}</span>
             </div>
             <Link
-              to="/checkout"
+              to="/cart"
               onClick={onClose}
               style={{display:'block', textAlign:'center', background:'#f97316', color:'#fff', padding:'12px 16px', borderRadius:10, textDecoration:'none', fontWeight:700, fontSize:14, marginBottom:8}}
             >
@@ -3919,7 +4655,7 @@ function RecommendedForYou({ items = [], t = (k) => k }) {
       <div style={{display:'flex', gap:14, overflowX:'auto', paddingBottom:6}}>
         {recs.map(p => {
           const img = p.images?.[0]
-          const src = img ? (img.startsWith('http') ? img : `http://localhost:3000${img}`) : null
+          const src = getImageSrc(img)
           return (
             <Link
               key={p.id}
@@ -3928,7 +4664,7 @@ function RecommendedForYou({ items = [], t = (k) => k }) {
             >
               <div className="jm-card-img" style={{width:140, height:140, borderRadius:12, background:'linear-gradient(180deg,#f8fafc,#eef2f7)', border:'1px solid #eef0f3', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', marginBottom:8, padding:8}}>
                 {src ? (
-                  <img src={src} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} />
+                  <img src={src || FALLBACK_IMG} alt={p.name} style={{width:'100%', height:'100%', objectFit:'contain'}} onError={(e) => { if (e.currentTarget.src !== FALLBACK_IMG) e.currentTarget.src = FALLBACK_IMG }} />
                 ) : (
                   <span style={{fontSize:40}}>📱</span>
                 )}
@@ -3948,9 +4684,154 @@ function RecommendedForYou({ items = [], t = (k) => k }) {
 }
 
 const styles = {
-  nav: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 32px', background:'#0f1923', position:'sticky', top:0, zIndex:100 },
-  logo: { color:'#fff', fontSize:22, fontWeight:700, textDecoration:'none' },
-  navLinks: { display:'flex', alignItems:'center', gap:24 },
+  nav: {
+    display:'flex',
+    justifyContent:'space-between',
+    alignItems:'center',
+    gap:12,
+    padding:'14px 24px',
+    background:'#0f1923',
+    position:'sticky',
+    top:0,
+    zIndex:1000,
+  },
+  navMobile: {
+    display:'flex',
+    justifyContent:'space-between',
+    alignItems:'center',
+    gap:8,
+    padding:'8px 12px',
+    background:'#0f1923',
+    position:'sticky',
+    top:0,
+    zIndex:1000,
+    boxShadow:'0 1px 0 rgba(255,255,255,0.06)',
+  },
+  logo: {
+    color:'#fff',
+    fontSize:22,
+    fontWeight:700,
+    textDecoration:'none',
+    whiteSpace:'nowrap',
+  },
+  logoMobile: {
+    color:'#fff',
+    fontSize:15,
+    fontWeight:800,
+    textDecoration:'none',
+    whiteSpace:'nowrap',
+    flex:1,
+    letterSpacing:-0.2,
+  },
+  navLinks: {
+    display:'flex',
+    alignItems:'center',
+    gap:24,
+    marginLeft:'auto',
+  },
+  mobileActions: {
+    display:'flex',
+    alignItems:'center',
+    gap:6,
+    marginLeft:'auto',
+  },
+  smallBtn: {
+    background:'rgba(255,255,255,0.04)',
+    border:'1px solid rgba(255,255,255,0.75)',
+    color:'white',
+    padding:'4px 9px',
+    borderRadius:6,
+    cursor:'pointer',
+    fontWeight:'bold',
+    fontSize:12,
+    minWidth:35,
+    height:28,
+    lineHeight:1,
+  },
+  menuBtn: {
+    background:'rgba(255,255,255,0.04)',
+    border:'1px solid rgba(255,255,255,0.75)',
+    color:'white',
+    fontSize:18,
+    padding:'3px 8px',
+    borderRadius:6,
+    cursor:'pointer',
+    lineHeight:1,
+    minWidth:34,
+    height:28,
+  },
+  mobileMenuBackdrop: {
+    position:'fixed',
+    inset:0,
+    background:'rgba(0,0,0,0.34)',
+    zIndex:9998,
+  },
+  mobileMenu: {
+    position:'fixed',
+    top:0,
+    right:0,
+    bottom:0,
+    width:'74%',
+    maxWidth:260,
+    background:'#0f1923',
+    borderLeft:'1px solid #334155',
+    display:'flex',
+    flexDirection:'column',
+    zIndex:9999,
+    boxShadow:'-12px 0 30px rgba(0,0,0,0.35)',
+    overflowY:'auto',
+  },
+  mobileMenuHeader: {
+    display:'flex',
+    alignItems:'center',
+    justifyContent:'space-between',
+    padding:'16px',
+    color:'#fff',
+    borderBottom:'1px solid #1e293b',
+    background:'#111c29',
+  },
+  mobileCloseBtn: {
+    background:'transparent',
+    border:'1px solid #475569',
+    color:'#fff',
+    width:30,
+    height:30,
+    borderRadius:8,
+    fontSize:20,
+    cursor:'pointer',
+    lineHeight:1,
+  },
+  mobileMenuItem: {
+    color:'#fff',
+    textDecoration:'none',
+    padding:'12px 16px',
+    borderBottom:'1px solid #1e293b',
+    fontSize:14,
+    fontWeight:600,
+  },
+  mobileMenuPrimary: {
+    color:'#fff',
+    textDecoration:'none',
+    margin:'14px 16px',
+    padding:'13px 18px',
+    borderRadius:10,
+    fontSize:15,
+    fontWeight:700,
+    background:'#f97316',
+    textAlign:'center',
+  },
+  mobileMenuButton: {
+    background:'transparent',
+    color:'#fff',
+    border:'none',
+    textAlign:'left',
+    padding:'14px 18px',
+    cursor:'pointer',
+    fontSize:15,
+    fontWeight:600,
+    fontFamily:'inherit',
+    borderBottom:'1px solid #1e293b',
+  },
   navLink: { color:'#ccc', textDecoration:'none', fontSize:14 },
   registerBtn: { background:'#f97316', color:'#fff', padding:'8px 16px', borderRadius:8, textDecoration:'none', fontSize:14 },
   logoutBtn: { background:'transparent', border:'1px solid #555', color:'#ccc', padding:'6px 14px', borderRadius:8, cursor:'pointer', fontSize:14 },
@@ -3962,6 +4843,7 @@ const styles = {
   page: { maxWidth:1100, margin:'0 auto', padding:32 },
   search: { width:'100%', padding:'12px 16px', borderRadius:10, border:'1px solid #ddd', fontSize:15, marginBottom:24, boxSizing:'border-box' },
   grid: { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:20 },
+  gridMobile: { display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:12 },
   card: { border:'1px solid #eee', borderRadius:12, overflow:'hidden', background:'#fff', boxShadow:'0 2px 8px rgba(0,0,0,0.06)' },
   cardImg: { height:140, display:'flex', alignItems:'center', justifyContent:'center', fontSize:56, background:'#f8f9fa', overflow:'hidden' },
   cardBody: { padding:16 },

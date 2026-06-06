@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom'
 function Home({ t = (k) => k, language = 'EN' }) {
   const isRTL = language === 'AR'
   const [showBanner, setShowBanner] = useState(false)
+  const isMobile = window.innerWidth <= 768
 
   // Persist banner dismissal across sessions
   useEffect(() => {
@@ -36,54 +37,60 @@ function Home({ t = (k) => k, language = 'EN' }) {
   // Categories — 7 parent buckets matching the DB category tree.
   // `comingSoon: true` shows an overlay on the card and keeps it disabled
   // until we add products to that bucket.
-  const categories = [
+const categories = [
   {
     id: 'mobiles',
     label: t('mobiles'),
-    icon: IconPhone,
+    image: '/categories/mobiles.png',
     to: '/products?category=Mobiles'
   },
   {
     id: 'computers',
     label: t('computers'),
-    icon: IconLaptop,
+    image: '/categories/computers.png',
     to: '/products?category=Computers'
   },
   {
     id: 'audio',
     label: t('audio'),
-    icon: IconHeadphones,
+    image: '/categories/audio.png',
     to: '/products?category=Audio'
   },
   {
     id: 'wearables',
     label: t('wearables'),
-    icon: IconWatch,
+    image: '/categories/wearables.png',
     to: '/products?category=Wearables'
+  },
+  {
+    id: 'accessories',
+    label: t('accessories') !== 'accessories' ? t('accessories') : 'Accessories',
+    image: '/categories/accessories.png',
+    fallbackImage: '/categories/mobiles.png',
+    to: '/products?category=Accessories'
   },
   {
     id: 'fashion',
     label: t('fashion'),
-    icon: IconShirt,
+    image: '/categories/fashion.png',
     to: '/products?category=Fashion',
     comingSoon: true
   },
   {
     id: 'beauty',
     label: t('beauty'),
-    icon: IconSparkles,
+    image: '/categories/beauty.png',
     to: '/products?category=Beauty',
     comingSoon: true
   },
   {
     id: 'home',
     label: t('homeKitchen'),
-    icon: IconHome,
+    image: '/categories/home-kitchen.png',
     to: '/products?category=Home%20%26%20Kitchen',
     comingSoon: true
   }
 ]
-
   return (
     <div style={s.page} dir={isRTL ? 'rtl' : 'ltr'}>
 
@@ -98,55 +105,50 @@ function Home({ t = (k) => k, language = 'EN' }) {
         </div>
       )}
 
-      {/* Utility strip — trust signals */}
-      <div style={s.utilStrip}>
-        <div style={s.utilInner}>
-          <div style={s.utilLeft}>
-            <span style={s.utilItem}>🚚 {t('homeUtilDelivery')}</span>
-            <span style={s.utilDot}>·</span>
-            <span style={s.utilItem}>🔒 {t('homeUtilPayments')}</span>
-            <span style={s.utilDot}>·</span>
-            <span style={s.utilItem}>↩ {t('homeUtilReturns')}</span>
-          </div>
-        </div>
-      </div>
 
       {/* Hero section */}
-      <section style={s.hero}>
+      <section style={isMobile ? {...s.hero, ...s.heroMobile} : s.hero}>
         {/* Atmospheric background — Doha skyline silhouette */}
         <div style={s.heroBg}>
           <SkylineSVG />
         </div>
 
-        <div style={s.heroInner}>
+        <div style={isMobile ? {...s.heroInner, ...s.heroInnerMobile} : s.heroInner}>
           {/* Left — copy and CTAs */}
           <div style={s.heroLeft}>
-            <div style={s.heroEyebrow}>{t('homeHeroEyebrow')}</div>
-            <h1 style={s.heroTitle}>{t('homeHeroTitle')}</h1>
-            <p style={s.heroSub}>{t('homeHeroSub')}</p>
+            {!isMobile && (
+  <div style={s.heroEyebrow}>{t('homeHeroEyebrow')}</div>
+)}
+            <h1 style={isMobile ? {...s.heroTitle, ...s.heroTitleMobile} : s.heroTitle}>
+  {t('homeHeroTitle')}
+</h1>
+            <p style={isMobile ? {...s.heroSub, ...s.heroSubMobile} : s.heroSub}>{t('homeHeroSub')}</p>
 
             {/* Inline trust pills */}
-            <div style={s.heroPills}>
-              <Pill label={t('homeTrustVerified')} />
-              <Pill label={t('homeTrustQuality')} />
-              <Pill label={t('homeTrustSecure')} />
-              <Pill label={t('homeTrustFast')} />
-            </div>
+            {!isMobile && (
+  <div style={s.heroPills}>
+    <Pill label={t('homeTrustVerified')} />
+    <Pill label={t('homeTrustQuality')} />
+    <Pill label={t('homeTrustSecure')} />
+    <Pill label={t('homeTrustFast')} />
+  </div>
+)}
 
             {/* CTAs */}
-            <div style={s.heroCTAs}>
-              <Link to="/products" style={s.ctaPrimary}>
+            <div style={isMobile ? {...s.heroCTAs, ...s.heroCTAsMobile} : s.heroCTAs}>
+              <Link to="/products" style={isMobile ? {...s.ctaPrimary, ...s.ctaMobile} : s.ctaPrimary}>
                 {t('homeShopNow')}
                 <span style={s.ctaArrow}>→</span>
               </Link>
-              <Link to="/register" style={s.ctaSecondary}>
+              <Link to="/register" style={isMobile ? {...s.ctaSecondary, ...s.ctaMobileSecondary} : s.ctaSecondary}>
                 {t('homeSellDevice')}
               </Link>
             </div>
           </div>
 
+
           {/* Right — product showcase + feature cards */}
-          <div style={s.heroRight}>
+          <div style={isMobile ? {...s.heroRight, ...s.heroRightMobile} : s.heroRight}>
             {/* Phone graphic (replace with real product photo when available) */}
             <div style={s.phoneShowcase}>
               {/* REPLACE_WITH_PHOTO: drop a 600x600 product image here */}
@@ -164,42 +166,59 @@ function Home({ t = (k) => k, language = 'EN' }) {
         </div>
       </section>
 
-      {/* Trust strip — 5 promises in a single row */}
-      <section style={s.trustStrip}>
-        <div style={s.trustInner}>
-          <TrustItem icon={IconUser}     title={t('homeTrustStripVerifiedTitle')}    sub={t('homeTrustStripVerifiedSub')} />
-          <TrustItem icon={IconCheck}    title={t('homeTrustStripQualityTitle')}     sub={t('homeTrustStripQualitySub')} />
-          <TrustItem icon={IconLock}     title={t('homeTrustStripSecureTitle')}      sub={t('homeTrustStripSecureSub')} />
-          <TrustItem icon={IconReturn}   title={t('homeTrustStripReturnsTitle')}     sub={t('homeTrustStripReturnsSub')} />
-          <TrustItem icon={IconTruck}    title={t('homeTrustStripDeliveryTitle')}    sub={t('homeTrustStripDeliverySub')} />
-        </div>
-      </section>
 
       {/* Shop by Category */}
-      <section style={s.section}>
-        <div style={s.sectionHead}>
-          <h2 style={s.sectionTitle}>{t('homeCategoryTitle')}</h2>
-          <Link to="/products" style={s.sectionLink}>
+      <section style={isMobile ? {...s.section, ...s.sectionMobile} : s.section}>
+        <div style={isMobile ? {...s.sectionHead, ...s.sectionHeadMobile} : s.sectionHead}>
+          <h2 style={isMobile ? {...s.sectionTitle, ...s.sectionTitleMobile} : s.sectionTitle}>{t('homeCategoryTitle')}</h2>
+          <Link to="/products" style={isMobile ? {...s.sectionLink, ...s.sectionLinkMobile} : s.sectionLink}>
             {t('homeViewAllCats')} <span>→</span>
           </Link>
         </div>
-        <div style={s.catGrid}>
-          {categories.map(cat => {
-            const Icon = cat.icon
-            const cardStyle = cat.comingSoon
-              ? {...s.catCard, position:'relative', opacity:0.7, pointerEvents:'none'}
-              : {...s.catCard, position:'relative'}
-            return (
-              <Link
-                to={cat.comingSoon ? '#' : cat.to}
-                key={cat.id}
-                style={cardStyle}
-                onClick={cat.comingSoon ? (e) => e.preventDefault() : undefined}
-                aria-disabled={cat.comingSoon ? 'true' : undefined}
-              >
-                <div style={s.catIconWrap}>
-                  <Icon />
-                </div>
+        <div style={isMobile ? {...s.catGrid, ...s.catGridMobile} : s.catGrid}>
+       {categories.map(cat => {
+  const baseCardStyle = isMobile ? { ...s.catCard, ...s.catCardMobile } : s.catCard
+  const cardStyle = cat.comingSoon
+    ? { ...baseCardStyle, position: 'relative', opacity: 0.85, cursor:'not-allowed' }
+    : { ...baseCardStyle, position: 'relative' }
+
+  return (
+    <Link
+  to={cat.comingSoon ? '#' : cat.to}
+  key={cat.id}
+  style={cardStyle}
+  onClick={cat.comingSoon ? (e) => e.preventDefault() : undefined}
+  aria-disabled={cat.comingSoon ? 'true' : undefined}
+
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = 'translateY(-6px)'
+    e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.12)'
+  }}
+
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = 'translateY(0)'
+    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)'
+  }}
+>
+      <div style={s.catImageWrap}>
+        <img
+  src={cat.image}
+  alt={cat.label}
+  onError={(e) => {
+    if (cat.fallbackImage && e.currentTarget.src.indexOf(cat.fallbackImage) === -1) {
+      e.currentTarget.src = cat.fallbackImage
+    }
+  }}
+  style={{
+    width: '100%',
+    height: isMobile ? 70 : 105,
+    objectFit: 'contain',
+    marginBottom: 8,
+    transition: 'transform 0.3s ease',
+    filter: cat.comingSoon ? 'grayscale(20%)' : 'none',
+  }}
+/>
+      </div>
                 <div style={s.catLabel}>{cat.label}</div>
                 {cat.comingSoon && (
                   <span style={{
@@ -372,7 +391,7 @@ const IconTrophy = () => (
 
 // Hero phone showcase — graphic stand-in until real photo
 const PhoneSVG = () => (
-  <svg width="280" height="380" viewBox="0 0 280 380" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <svg width="320" height="420" viewBox="0 0 280 380" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <defs>
       <linearGradient id="phoneBody" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#1f2937" />
@@ -402,7 +421,40 @@ const PhoneSVG = () => (
     {/* Screen highlight */}
     <rect x="84" y="62" width="40" height="100" rx="10" fill="#ffffff" opacity="0.12" />
     {/* JASPR Market watermark on screen */}
-    <text x="140" y="200" textAnchor="middle" fontFamily="Inter Tight, system-ui" fontSize="16" fontWeight="700" fill="#fff" opacity="0.9">JASPR</text>
+   {/* App screen content */}
+<text
+  x="140"
+  y="115"
+  textAnchor="middle"
+  fontSize="11"
+  fill="#ffffff"
+  fontWeight="700"
+>
+  JASPR MARKET
+</text>
+
+<text x="140" y="145" textAnchor="middle" fontSize="10" fill="#ffffff">
+  Categories
+</text>
+
+<text x="100" y="175" textAnchor="middle" fontSize="13">📱</text>
+<text x="140" y="175" textAnchor="middle" fontSize="13">💄</text>
+<text x="180" y="175" textAnchor="middle" fontSize="13">🏠</text>
+<text x="120" y="215" textAnchor="middle" fontSize="13">👗</text>
+<text x="160" y="215" textAnchor="middle" fontSize="13">🎧</text>
+
+<rect x="98" y="250" width="84" height="28" rx="8" fill="#f97316" />
+
+<text
+  x="140"
+  y="268"
+  textAnchor="middle"
+  fontSize="10"
+  fontWeight="700"
+  fill="#ffffff"
+>
+  Shop Now
+</text>
   </svg>
 )
 
@@ -430,8 +482,8 @@ const SkylineSVG = () => (
 
 const s = {
   page: {
-    background: '#ffffff',
-    color: '#0f1923',
+    background: '#f7f8fa',
+    color: '#0f172a',
     fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
     minHeight: '100vh',
   },
@@ -476,34 +528,18 @@ const s = {
     padding: 0,
   },
 
-  // Utility strip (the very thin dark bar with trust signals)
-  utilStrip: {
-    background: '#0f1923',
-    color: '#cbd5e1',
-    fontSize: 13,
-    padding: '8px 0',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-  },
-  utilInner: {
-    maxWidth: 1280,
-    margin: '0 auto',
-    padding: '0 24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  utilLeft: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  utilItem: { color: '#cbd5e1' },
-  utilDot: { color: '#475569' },
-
+  
   // Hero
-  hero: {
-    background: 'linear-gradient(135deg, #0f1923 0%, #1e3a5f 50%, #0f172a 100%)',
-    color: '#ffffff',
-    position: 'relative',
-    overflow: 'hidden',
-    padding: '64px 0 80px',
-  },
+hero: {
+  background: 'linear-gradient(135deg, #0f1923 0%, #1e3a5f 50%, #0f172a 100%)',
+  color: '#ffffff',
+  position: 'relative',
+  overflow: 'hidden',
+  padding: '0px 0 8px',
+},
+heroMobile: {
+  padding: '0',
+},
   heroBg: {
     position: 'absolute',
     inset: 0,
@@ -516,7 +552,7 @@ const s = {
     padding: '0 24px',
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: 48,
+    gap: 20,
     position: 'relative',
     zIndex: 1,
   },
@@ -535,7 +571,7 @@ const s = {
   },
   heroTitle: {
     fontFamily: '"Inter Tight", system-ui, sans-serif',
-    fontSize: 56,
+    fontSize: 42,
     fontWeight: 700,
     lineHeight: 1.05,
     letterSpacing: '-0.03em',
@@ -547,7 +583,7 @@ const s = {
     lineHeight: 1.6,
     color: '#cbd5e1',
     maxWidth: 480,
-    margin: '0 0 28px',
+    margin: '0 0 18px',
   },
   heroPills: {
     display: 'flex',
@@ -622,35 +658,84 @@ const s = {
   featCard: {
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
-    background: 'rgba(15,23,42,0.6)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    padding: '12px 16px',
-    borderRadius: 12,
-    minWidth: 220,
+    gap: 14,
+    background: 'rgba(255,255,255,0.07)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.14)',
+    padding: '14px 18px',
+    borderRadius: 14,
+    minWidth: 240,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
   },
   featIcon: {
     fontSize: 22,
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(249,115,22,0.15)',
+    background: 'rgba(249,115,22,0.18)',
+    border: '1px solid rgba(249,115,22,0.28)',
     borderRadius: 10,
+    flexShrink: 0,
   },
   featTitle: {
     color: '#ffffff',
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: 14,
     lineHeight: 1.3,
+    letterSpacing: '-0.01em',
   },
   featSub: {
-    color: '#94a3b8',
+    color: '#cbd5e1',
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 1.4,
   },
+  heroRightMobile: {
+  display: 'none',
+},
+
+heroInnerMobile: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+  padding: '18px 20px 20px',
+},
+
+heroTitleMobile: {
+  fontSize: 23,
+  lineHeight: 1.12,
+  margin: '0 0 12px',
+},
+
+heroSubMobile: {
+  fontSize: 13.5,
+  lineHeight: 1.45,
+  margin: '0 0 14px',
+  maxWidth: '100%',
+},
+
+heroCTAsMobile: {
+  gap: 10,
+  flexWrap: 'nowrap',
+},
+
+ctaMobile: {
+  padding: '11px 18px',
+  fontSize: 13,
+  borderRadius: 8,
+  flex: 1,
+  justifyContent: 'center',
+},
+
+ctaMobileSecondary: {
+  padding: '11px 16px',
+  fontSize: 13,
+  borderRadius: 8,
+  flex: 1,
+  justifyContent: 'center',
+},
 
   // Trust strip — bridges hero to content
   trustStrip: {
@@ -702,7 +787,10 @@ const s = {
   section: {
     maxWidth: 1280,
     margin: '0 auto',
-    padding: '64px 24px 0',
+    padding: '36px 24px 0',
+  },
+  sectionMobile: {
+    padding: '26px 16px 0',
   },
   sectionHead: {
     display: 'flex',
@@ -712,6 +800,10 @@ const s = {
     flexWrap: 'wrap',
     gap: 12,
   },
+  sectionHeadMobile: {
+    marginBottom: 16,
+    gap: 6,
+  },
   sectionTitle: {
     fontFamily: '"Inter Tight", system-ui, sans-serif',
     fontSize: 28,
@@ -719,6 +811,10 @@ const s = {
     color: '#0f1923',
     letterSpacing: '-0.02em',
     margin: 0,
+  },
+  sectionTitleMobile: {
+    fontSize: 22,
+    lineHeight: 1.15,
   },
   sectionLink: {
     color: '#f97316',
@@ -729,6 +825,9 @@ const s = {
     alignItems: 'center',
     gap: 6,
   },
+  sectionLinkMobile: {
+    fontSize: 12,
+  },
 
   // Category grid
   catGrid: {
@@ -736,34 +835,45 @@ const s = {
     gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
     gap: 16,
   },
-  catCard: {
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: 12,
-    padding: '24px 16px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+  catGridMobile: {
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: 12,
-    textDecoration: 'none',
-    color: '#0f1923',
-    transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s',
-    minHeight: 130,
   },
-  catIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    color: '#0f1923',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+catCard: {
+  background: 'linear-gradient(180deg,#ffffff 0%,#fafafa 100%)',
+  border: '1px solid #e5e7eb',
+  borderRadius: 20,
+  padding: '20px',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 14,
+  textDecoration: 'none',
+  color: '#0f1923',
+  transition: 'all .25s ease',
+  minHeight: 170,
+  boxShadow: '0 8px 24px rgba(15,23,42,0.08)',
+  overflow: 'hidden',
+  cursor: 'pointer',
+},
+catCardMobile: {
+  minHeight: 126,
+  padding: '12px 10px',
+  borderRadius: 16,
+  gap: 8,
+  boxShadow: '0 6px 16px rgba(15,23,42,0.07)',
+},
+catImageWrap: {
+  width: 80,
+  height: 80,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 8,
+},
   catLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
     textAlign: 'center',
     color: '#0f1923',

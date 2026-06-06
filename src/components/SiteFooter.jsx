@@ -1,248 +1,198 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
-// ────────────────────────────────────────────────────────────────────────
-//  SiteFooter — main site footer shown on every page.
-//  Required by Hukoomi e-commerce licence: CR number, contact info,
-//  and direct links to all consumer-facing legal policies.
-//
-//  Usage in App.js:
-//    <SiteFooter t={t} language={language} />
-//  Place AFTER <Routes> and BEFORE </BrowserRouter>.
-// ────────────────────────────────────────────────────────────────────────
-
 function SiteFooter({ t = (k) => k, language = 'EN' }) {
-  const isRTL = language === 'AR'
 
   return (
-    <footer style={s.footer} dir={isRTL ? 'rtl' : 'ltr'}>
-      <div style={s.inner}>
-        {/* Top row: 4 columns */}
-        <div style={s.grid}>
-          {/* Brand */}
-          <div style={s.col}>
-            <div style={s.brand}>
-              JASPR <span style={s.brandAccent}>Market</span>
-            </div>
-            <div style={s.brandTag}>{t('siteFooterTag')}</div>
-            <p style={s.brandDesc}>{t('siteFooterDesc')}</p>
-          </div>
+  <footer style={s.footer} dir="ltr">
 
-          {/* Shop */}
-          <div style={s.col}>
-            <div style={s.colTitle}>{t('siteFooterShopTitle')}</div>
-            <Link to="/products" style={s.link}>{t('shop')}</Link>
-            <Link to="/cart" style={s.link}>{t('cart')}</Link>
-            <Link to="/orders" style={s.link}>{t('myOrders')}</Link>
-            <Link to="/login" style={s.link}>{t('login')}</Link>
-          </div>
-
-          {/* Help & Legal */}
-          <div style={s.col}>
-            <div style={s.colTitle}>{t('siteFooterHelpTitle')}</div>
-            <Link to="/contact" style={s.link}>{t('siteFooterContactUs')}</Link>
-            <Link to="/shipping" style={s.link}>{t('legalFooterShipping')}</Link>
-            <Link to="/refund-policy" style={s.link}>{t('legalFooterRefund')}</Link>
-            <Link to="/terms" style={s.link}>{t('legalFooterTerms')}</Link>
-            <Link to="/privacy" style={s.link}>{t('legalFooterPrivacy')}</Link>
-            <Link to="/cookie-policy" style={s.link}>{t('cookiePolicy')}</Link>
-            <Link to="/vendor-policy" style={s.link}>{t('vendorPolicy')}</Link>
-            <Link to="/account-deletion" style={s.link}>{t('accountDeletionPolicy')}</Link>
-          </div>
-
-          {/* Contact */}
-          <div style={s.col}>
-            <div style={s.colTitle}>{t('siteFooterContactTitle')}</div>
-            <a href="mailto:support@jasprmarket.com" style={s.link}>{t('siteFooterEmail')}</a>
-            <a href="tel:+97466142417" style={s.link}>{t('siteFooterPhone')}</a>
-            <div style={s.smallText}>{t('legalFooterHours')}</div>
-            <div style={s.smallText}>
-              {t('siteFooterAddress').split('\n').map((line, i) => (
-                <span key={i}>{line}{i === 0 && <br />}</span>
-              ))}
-            </div>
+      {/* Trust Row */}
+      <div style={s.trustRow}>
+        <div style={s.trustItem}>
+          <div style={s.icon}>🛡️</div>
+          <div>
+          <strong>{language === 'AR' ? 'معاملات آمنة' : 'Secure Transactions'}</strong>
+          <span>{language === 'AR' ? 'بياناتك محمية' : 'Your data is protected'}</span>
           </div>
         </div>
 
-                {/* Compliance bar — REQUIRED for Hukoomi */}
-        <div style={s.compliance}>
-          <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>
-              {t('siteFooterOperator')}:
-            </span>{' '}
-            {t('siteFooterOperatorName')}
-          </div>
-
-          <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>
-              {t('siteFooterCR')}:
-            </span>{' '}
-            <strong style={s.complianceValue}>
-              {t('siteFooterCRNumber')}
-            </strong>
-          </div>
-
-          {/* NEW MOI ACTIVITY BLOCK */}
-          <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>
-              MOI CR ACTIVITY:
-            </span>{' '}
-            <strong style={s.complianceValue}>
-              479121
-            </strong>
-
-            <div style={s.complianceSubText}>
-              
-              Digital Platform for Retail Trade Intermediation
-            </div>
-          </div>
-
-          <div style={s.complianceItem}>
-            <span style={s.complianceLabel}>
-              {t('siteFooterLicence')}:
-            </span>{' '}
-            <em style={s.compliancePending}>
-              ({t('legalFooterPending')})
-            </em>
+        <div style={s.trustItem}>
+          <div style={s.icon}>🔄</div>
+          <div>
+          <strong>{language === 'AR' ? 'سوق موثوق' : 'Trusted Marketplace'}</strong>
+          <span>{language === 'AR' ? 'بائعون موثقون' : 'Verified vendors'}</span>
           </div>
         </div>
 
-        {/* Bottom strip */}
-        <div style={s.bottom}>
-          <span>{t('siteFooterCopyright')} {t('legalFooterRights')}</span>
-          <span style={s.payments}>
-            {t('siteFooterAccepts')}: {t('cashOnDelivery')}
-            {/* Once Tap Payments is live: , Visa, Mastercard */}
-          </span>
+        <div style={s.trustItem}>
+          <div style={s.icon}>🏅</div>
+          <div>
+          <strong>
+  {language === 'AR' ? 'سوق موثوق' : 'Trusted Marketplace'}
+</strong>
+
+<span>
+  {language === 'AR' ? 'بائعون موثقون' : 'Verified vendors'}
+</span>
+          </div>
         </div>
+
+        <div style={s.trustItem}>
+          <div style={s.icon}>🔒</div>
+          <div>
+          <strong>
+  {language === 'AR' ? 'الخصوصية محمية' : 'Privacy Protected'}
+</strong>
+
+<span>
+  {language === 'AR' ? 'خصوصيتك تهمنا' : 'Your privacy matters'}
+</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Simple copyright row */}
+      <div style={s.simpleCopyright}>
+        <strong>© 2026 JASPR Market.</strong>
+        <span>{language === 'AR' ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}</span>
+      </div>
+
+      {/* Bottom Links */}
+      <div style={s.bottomLinks}>
+        <Link to="/terms" style={s.link}>
+  {language === 'AR' ? 'الشروط والأحكام' : 'Terms & Conditions'}
+</Link>
+
+<span>|</span>
+
+<Link to="/privacy" style={s.link}>
+  {language === 'AR' ? 'سياسة الخصوصية' : 'Privacy Policy'}
+</Link>
+
+<span>|</span>
+
+<Link to="/refund-policy" style={s.link}>
+  {language === 'AR' ? 'سياسة الاسترجاع' : 'Refund Policy'}
+</Link>
+
+<span>|</span>
+
+<Link to="/shipping" style={s.link}>
+  {language === 'AR' ? 'سياسة الشحن' : 'Shipping Policy'}
+</Link>
+
+<span>|</span>
+
+<Link to="/contact" style={s.link}>
+  {language === 'AR' ? 'اتصل بنا' : 'Contact Us'}
+</Link>
+
+<span>|</span>
+
+<Link to="/account-deletion" style={s.link}>
+  {language === 'AR' ? 'حذف الحساب' : 'Account Deletion'}
+</Link>
       </div>
     </footer>
   )
 }
 
-// ──────────────── Inline styles (matches JASPR Market dark navbar palette) ────────────────
-
 const s = {
-  footer: {
-    background: 'linear-gradient(135deg, #0f1923 0%, #1e3a5f 100%)',
-    color: '#94a3b8',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    fontSize: 14,
-    lineHeight: 1.6,
-    marginTop: 64, // pushes footer below page content
-  },
-  inner: {
-    maxWidth: 1200,
-    margin: '0 auto',
-    padding: '48px 32px 24px',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: 40,
-    marginBottom: 40,
-  },
-  col: {
+footer: {
+  background: 'linear-gradient(135deg, #061d31 0%, #0b2f4a 45%, #061827 100%)',
+  color: '#ffffff',
+  fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  marginTop: 36,
+  paddingBottom: 84, // space for bottom mobile nav
+},
+
+trustRow: {
+  maxWidth: 1400,
+  margin: '0 auto',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+  gap: 22,
+  padding: '24px 20px',
+  borderBottom: '1px solid rgba(255,255,255,0.18)',
+},
+
+  trustItem: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  brand: {
-    fontSize: 24,
-    fontWeight: 700,
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  brandAccent: {
-    color: '#f97316',
-  },
-  brandTag: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: '0.15em',
-    color: '#94a3b8',
-    marginBottom: 12,
-  },
-  brandDesc: {
-    fontSize: 13,
-    color: '#94a3b8',
-    margin: 0,
-    maxWidth: 240,
-  },
-  colTitle: {
-    color: '#f97316',
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.12em',
-    marginBottom: 8,
-  },
-  link: {
-    color: '#cbd5e1',
-    textDecoration: 'none',
-    fontSize: 14,
-    transition: 'color 0.15s',
-  },
-  smallText: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginTop: 4,
-    lineHeight: 1.5,
+    alignItems: 'center',
+    gap: 22,
+    borderRight: '1px solid rgba(255,255,255,0.25)',
+    minHeight: 80,
   },
 
-  // Compliance bar — the part Hukoomi inspectors will look for
-  compliance: {
+  icon: {
+    fontSize: 30,
+    lineHeight: 1,
+  },
+
+  trustItemStrong: {},
+
+complianceRow: {
+  maxWidth: 1400,
+  margin: '0 auto',
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-  gap: 24,
-  padding: '28px 0',
-  borderTop: '1px solid rgba(255,255,255,0.1)',
-  borderBottom: '1px solid rgba(255,255,255,0.1)',
-  marginBottom: 20,
+  gridTemplateColumns: '1.3fr 1px 1.2fr 1px 1.4fr 1px 1fr 1px 1fr',
+  gap: 22,
   alignItems: 'start',
+  padding: '28px 48px',
+  borderBottom: '1px solid rgba(255,255,255,0.18)',
 },
+
 complianceItem: {
-  color: '#cbd5e1',
   display: 'flex',
   flexDirection: 'column',
   gap: 6,
-  paddingRight: 12,
-  minHeight: 72,
-},
-complianceLabel: {
-  color: '#94a3b8',
-  textTransform: 'uppercase',
-  fontSize: 11,
-  letterSpacing: '0.12em',
-  fontWeight: 700,
-},
-complianceValue: {
-  color: '#ffffff',
-  fontSize: 20,
-  fontWeight: 700,
-  lineHeight: 1.2,
-},
-  compliancePending: {
-    color: '#94a3b8',
-    fontStyle: 'italic',
-  },
-  complianceSubText: {
-  fontSize: 13,
-  color: '#cbd5e1',
-  lineHeight: 1.5,
+  fontSize: 15,
+  lineHeight: 1.4,
 },
 
-  // Bottom strip — copyright + payments accepted
-  bottom: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-    fontSize: 12,
-    color: '#64748b',
-  },
-  payments: {
-    color: '#64748b',
+label: {
+  color: '#a7b6c7',
+  fontSize: 12,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+},
+
+divider: {
+  width: 1,
+  height: 72,
+  background: 'rgba(255,255,255,0.25)',
+},
+
+simpleCopyright: {
+  maxWidth: 1400,
+  margin: '0 auto',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: 8,
+  flexWrap: 'wrap',
+  padding: '18px 20px',
+  borderBottom: '1px solid rgba(255,255,255,0.14)',
+  color: '#cbd5e1',
+  fontSize: 13,
+},
+
+bottomLinks: {
+  maxWidth: 1500,
+  margin: '0 auto',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: 14,
+  padding: '22px 20px 30px',
+  fontSize: 14,
+  borderTop: '1px solid rgba(255,255,255,0.12)',
+},
+
+  link: {
+    color: '#ffffff',
+    textDecoration: 'none',
   },
 }
 
