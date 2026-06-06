@@ -9,7 +9,9 @@ export function PaymentSuccess({ t = (k) => k, language = 'EN' }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const paymentId = params.get('paymentId') || params.get('Id')
+    // MyFatoorah appends paymentId automatically to the CallBackUrl
+    // It may come as 'paymentId' or 'Id' or 'PaymentId'
+    const paymentId = params.get('paymentId') || params.get('Id') || params.get('PaymentId')
     if (!paymentId) { setState('error'); return }
 
     payments.verify(paymentId)
