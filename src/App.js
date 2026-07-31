@@ -17,6 +17,7 @@ import SiteFooter from './components/SiteFooter'
 import ScrollToTop from './components/ScrollToTop'
 import { Browser } from '@capacitor/browser';
 import { App as CapApp } from '@capacitor/app';
+import { COMING_SOON_MODE } from './comingSoonConfig'
 const formatQAR = (amount) => `QAR ${Number(amount).toLocaleString('en-QA')}`
 const API_ORIGIN = 'https://mobimart-backend-production.up.railway.app'
 
@@ -1419,6 +1420,12 @@ function Checkout({ t = (k) => k, language = 'EN' }) {
   }
 
   const handlePlaceOrder = async () => {
+    if (COMING_SOON_MODE) {
+      setError(ar
+        ? 'الطلبات غير متاحة حالياً. سنقوم بتفعيل الشراء قريباً جداً.'
+        : 'Ordering isn\'t open yet — we\'re putting the final touches on checkout. Check back very soon!')
+      return
+    }
     if (!form.name || !form.zone || !form.street || !form.building || !form.phone) {
       setError(ar ? 'يرجى تعبئة الاسم والمنطقة والشارع والمبنى ورقم الهاتف' : 'Please fill: Full Name, Zone No., Street No., Building No. and Phone')
       return
@@ -1494,6 +1501,16 @@ const payMsg = payErr?.response?.data?.error || payErr?.response?.data?.message 
   return (
     <div style={{...styles.page, maxWidth:900}}>
       <h2 style={{marginBottom:8}}>{t('checkout')}</h2>
+      {COMING_SOON_MODE && (
+        <div style={{background:'#fff7ed', border:'1px solid #fdba74', borderRadius:10, padding:'14px 18px', marginBottom:20, display:'flex', alignItems:'center', gap:10}}>
+          <span style={{fontSize:20}}>🚧</span>
+          <span style={{fontSize:14, color:'#9a3412', fontWeight:600}}>
+            {ar
+              ? 'الشراء غير متاح حالياً — نحن في مرحلة الإطلاق التجريبي. تصفح المتجر بحرية، وسيتم تفعيل الطلبات قريباً جداً.'
+              : "Checkout isn't open yet — we're in soft launch. Feel free to browse the shop; ordering unlocks very soon."}
+          </span>
+        </div>
+      )}
       {error && <p style={styles.error}>{error}</p>}
       <div style={{display:'flex', gap:28, flexWrap:'wrap'}}>
 
@@ -1580,8 +1597,10 @@ const payMsg = payErr?.response?.data?.error || payErr?.response?.data?.message 
             )}
           </div>
 
-          <button onClick={handlePlaceOrder} disabled={placing || checkedItems.length === 0} style={{...styles.submitBtn, opacity: (placing || checkedItems.length === 0) ? 0.6 : 1}}>
-            {placing ? t('placingOrder') : `${t('placeOrder')} (${checkedItems.length} item${checkedItems.length !== 1 ? 's' : ''})`}
+          <button onClick={handlePlaceOrder} disabled={COMING_SOON_MODE || placing || checkedItems.length === 0} style={{...styles.submitBtn, opacity: (COMING_SOON_MODE || placing || checkedItems.length === 0) ? 0.6 : 1, cursor: COMING_SOON_MODE ? 'not-allowed' : 'pointer'}}>
+            {COMING_SOON_MODE
+              ? (ar ? '🚧 قريباً' : '🚧 Coming Soon')
+              : (placing ? t('placingOrder') : `${t('placeOrder')} (${checkedItems.length} item${checkedItems.length !== 1 ? 's' : ''})`)}
           </button>
         </div>
 

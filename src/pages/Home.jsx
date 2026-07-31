@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { COMING_SOON_MODE } from '../comingSoonConfig'
 
 
 // ────────────────────────────────────────────────────────────────────────
@@ -21,10 +22,12 @@ function Home({ t = (k) => k, language = 'EN' }) {
   const [showBanner, setShowBanner] = useState(false)
   const isMobile = window.innerWidth <= 768
 
-  // Persist banner dismissal across sessions
+  // Show the banner by default while in Coming Soon mode, unless the
+  // person already dismissed it in this browser.
   useEffect(() => {
+    if (!COMING_SOON_MODE) { setShowBanner(false); return }
     const dismissed = localStorage.getItem('mm_comingsoon_dismissed')
-    if (dismissed === 'v1') setShowBanner(false)
+    setShowBanner(dismissed !== 'v1')
   }, [])
 
   const dismissBanner = () => {
