@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 
 // Privacy Policy — JASPR Trading / MobiMart
 function Privacy({ t = (k) => k, language = 'EN' }) {
@@ -212,7 +212,7 @@ function Privacy({ t = (k) => k, language = 'EN' }) {
           <P>
             {t('legalPrivacyContactP1')} <a href="mailto:support@jasprmarket.com" style={s.link}>support@jasprmarket.com</a><br />
             {t('legalPrivacyContactP2')} <strong>+974 6614 2417</strong> ({t('legalFooterHours')})<br />
-            {t('legalPrivacyContactP3')} JASPR Trading Contracting and Services, Building 220, Street 185, Zone 24, Doha, State of Qatar
+            {t('legalPrivacyContactP3')} JASPR Trading Contracting and Services, Building 43, Street 310, Zone 27, Doha, State of Qatar
           </P>
         </Section>
 

@@ -1,4 +1,4 @@
-// ────────────────────────────────────────────────────────────────────────
+﻿// ────────────────────────────────────────────────────────────────────────
 //  translations-sitefooter.js
 //
 //  Translation keys for the SiteFooter component (shown on every page).
@@ -27,7 +27,7 @@ const siteFooterEN = {
   // ── Contact block (hardcoded in JSX → now translatable) ──────────────
   siteFooterEmail:        'support@jasprmarket.com',
   siteFooterPhone:        '+974 6614 2417',
-  siteFooterAddress:      'Building 220, Street 185, Zone 24\nDoha, State of Qatar',
+  siteFooterAddress:      'Building 43, Street 310, Zone 27\nDoha, State of Qatar',
 
   // ── Compliance bar ───────────────────────────────────────────────────
   siteFooterOperator:     'Operator',

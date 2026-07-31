@@ -1,4 +1,4 @@
-// ────────────────────────────────────────────────────────────────────────
+﻿// ────────────────────────────────────────────────────────────────────────
 //  translations-legal.js
 //
 //  Translation keys for the 5 legal/compliance policy pages:
@@ -33,7 +33,7 @@ const legalEN = {
   legalTermsTocChanges: "Changes to These Terms",
   legalTermsTocContact: "Contact",
   legalTermsAboutTitle: "About MobiMart",
-  legalTermsAboutP1: "MobiMart is an online marketplace operated by JASPR Trading Contracting and Services (Commercial Registration CR-223480), based at Building 220, Street 185, Zone 24, Doha, State of Qatar (referred to in these terms as \"we\", \"us\", \"MobiMart\"). We connect buyers in Qatar with verified vendors offering mobile phones, accessories, and related products.",
+  legalTermsAboutP1: "MobiMart is an online marketplace operated by JASPR Trading Contracting and Services (Commercial Registration CR-223480), based at Building 43, Street 310, Zone 27, Doha, State of Qatar (referred to in these terms as \"we\", \"us\", \"MobiMart\"). We connect buyers in Qatar with verified vendors offering mobile phones, accessories, and related products.",
   legalTermsAboutP2: "MobiMart is licensed under Ministerial Decision No. 25 of 2026 on E-Commerce Activities, issued by the Ministry of Commerce and Industry, State of Qatar. Our e-commerce licence number will be displayed in the site footer once issued.",
   legalTermsAccountsTitle: "Accounts",
   legalTermsAccountsP1: "To buy or sell on MobiMart you must register an account and provide accurate information. You are responsible for the security of your password and for all activity on your account.",
@@ -119,7 +119,7 @@ const legalEN = {
   legalPrivacyTocChanges: "Changes",
   legalPrivacyTocContact: "Contact",
   legalPrivacyWhoTitle: "Who We Are",
-  legalPrivacyWhoP1: "MobiMart is operated by JASPR Trading Contracting and Services, a company registered in the State of Qatar (Commercial Registration CR-223480), with offices at Building 220, Street 185, Zone 24, Doha, Qatar.",
+  legalPrivacyWhoP1: "MobiMart is operated by JASPR Trading Contracting and Services, a company registered in the State of Qatar (Commercial Registration CR-223480), with offices at Building 43, Street 310, Zone 27, Doha, Qatar.",
   legalPrivacyWhoP2: "We are the data controller for personal information processed through MobiMart. If you have any questions about how we handle your data, contact us at support@jasprmarket.com.",
   legalPrivacyCollectTitle: "What We Collect",
   legalPrivacyCollectIntro: "We collect personal information in three broad categories:",
@@ -443,7 +443,7 @@ legalPrivacyTitle: 'Privacy Policy',
   legalContactCardPhone: 'Phone',
   legalContactCardPhoneNote: 'Sun–Thu, 9 AM – 10 PM Qatar time.',
   legalContactCardAddress: 'Address',
-  legalContactCardAddressLine1: 'Building 220, Street 185, Zone 24',
+  legalContactCardAddressLine1: 'Building 43, Street 310, Zone 27',
   legalContactCardAddressLine2: 'Doha, State of Qatar',
   legalContactCardAddressNote: 'Visits by appointment only.',
 
@@ -640,7 +640,7 @@ const legalAR = {
   legalPrivacyTocContact: 'التواصل',
 
   legalPrivacyWhoTitle: 'من نحن',
-  legalPrivacyWhoP1: 'تدار موبي مارت بواسطة شركة جاسبر للتجارة والمقاولات والخدمات، وهي شركة مسجلة في دولة قطر بموجب السجل التجاري CR-223480، ومقرها في المبنى 220، الشارع 185، المنطقة 24، الدوحة، دولة قطر.',
+  legalPrivacyWhoP1: 'تدار موبي مارت بواسطة شركة جاسبر للتجارة والمقاولات والخدمات، وهي شركة مسجلة في دولة قطر بموجب السجل التجاري CR-223480، ومقرها في المبنى 43، الشارع 310، المنطقة 27، الدوحة، دولة قطر.',
   legalPrivacyWhoP2: 'نحن نتحكم في البيانات الشخصية التي تتم معالجتها عبر موبي مارت. لأي استفسار حول كيفية تعاملنا مع بياناتك، يمكنك التواصل معنا عبر support@jasprmarket.com.',
 
   legalPrivacyCollectTitle: 'المعلومات التي نجمعها',
@@ -950,7 +950,7 @@ const legalAR = {
   legalContactCardPhone: 'الهاتف',
   legalContactCardPhoneNote: 'الأحد–الخميس، 9 صباحاً – 10 مساءً بتوقيت قطر.',
   legalContactCardAddress: 'العنوان',
-  legalContactCardAddressLine1: 'المبنى 220، الشارع 185، المنطقة 24',
+  legalContactCardAddressLine1: 'المبنى 43، الشارع 310، المنطقة 27',
   legalContactCardAddressLine2: 'الدوحة، دولة قطر',
   legalContactCardAddressNote: 'الزيارات بموعد مسبق فقط.',
 

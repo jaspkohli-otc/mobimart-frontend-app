@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 
 function Contact({ language = 'EN' }) {
   const isRTL = language === 'AR'
@@ -69,7 +69,7 @@ const content = {
     phone: 'Phone',
     hours: 'Sun–Thu, 9 AM – 10 PM Qatar time',
     address: 'Address',
-    addressLine: 'Building 220, Street 185, Zone 24, Doha, State of Qatar',
+    addressLine: 'Building 43, Street 310, Zone 27, Doha, State of Qatar',
     visits: 'Visits by appointment only.',
     departmentTitle: 'Who to contact',
     about: 'Your question is about',
@@ -96,7 +96,7 @@ const content = {
     phone: 'الهاتف',
     hours: 'من الأحد إلى الخميس، من 9 صباحاً حتى 10 مساءً بتوقيت قطر',
     address: 'العنوان',
-    addressLine: 'مبنى 220، شارع 185، منطقة 24، الدوحة، دولة قطر',
+    addressLine: 'مبنى 43، شارع 310، منطقة 27، الدوحة، دولة قطر',
     visits: 'الزيارات حسب الموعد المسبق فقط.',
     departmentTitle: 'جهة التواصل المناسبة',
     about: 'موضوع الاستفسار',
