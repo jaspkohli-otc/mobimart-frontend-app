@@ -30,15 +30,10 @@ workflows:
           pod install
       - name: Build iOS app
         script: |
-          xcodebuild -workspace "$XCODE_WORKSPACE" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath build/ios/App.xcarchive \
-            archive
-          xcodebuild -exportArchive \
-            -archivePath build/ios/App.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist /Users/builder/export_options.plist
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-xcargs "DEVELOPMENT_TEAM=WAK5KSHN3U CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='JASPR Market App Store'"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
