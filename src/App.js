@@ -956,6 +956,7 @@ const quickViewModal = quickViewProduct ? (() => {
 function Login({ onLogin, t = (k) => k }) {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
+  const isMobile = window.innerWidth <= 768
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -970,14 +971,17 @@ function Login({ onLogin, t = (k) => k }) {
   }
 
   return (
-    <div style={{minHeight:'100vh', background:'#fff', display:'flex', flexDirection:'column'}}>
+    <div style={{minHeight:'100vh', background: isMobile ? '#fff' : '#f8f9fa', display:'flex', flexDirection:'column'}}>
       {/* Orange header strip */}
-      <div style={{background:'#f97316', padding:'24px 20px 20px', color:'#fff'}}>
-        <div style={{fontSize:22, fontWeight:800, letterSpacing:0.5}}>JASPR <span style={{fontWeight:400}}>Market</span></div>
-        <div style={{fontSize:13, opacity:0.9, marginTop:4}}>Qatar's Trusted Tech Marketplace</div>
+      <div style={{background:'#f97316', padding: isMobile ? '24px 20px 20px' : '36px 40px 32px', color:'#fff'}}>
+        <div style={{maxWidth: isMobile ? 'none' : 460, margin: isMobile ? 0 : '0 auto'}}>
+          <div style={{fontSize:22, fontWeight:800, letterSpacing:0.5}}>JASPR <span style={{fontWeight:400}}>Market</span></div>
+          <div style={{fontSize:13, opacity:0.9, marginTop:4}}>Qatar's Trusted Tech Marketplace</div>
+        </div>
       </div>
 
-      <div style={{flex:1, padding:'28px 24px'}}>
+      <div style={{flex:1, display:'flex', justifyContent:'center', padding: isMobile ? '28px 24px' : '48px 24px'}}>
+        <div style={{width:'100%', maxWidth: isMobile ? '100%' : 460, background:'#fff', borderRadius: isMobile ? 0 : 16, padding: isMobile ? 0 : 36, boxShadow: isMobile ? 'none' : '0 4px 24px rgba(15,23,42,0.08)', boxSizing:'border-box'}}>
         <h2 style={{fontSize:22, fontWeight:700, marginBottom:6, color:'#0f1923'}}>Sign in</h2>
         <p style={{fontSize:13, color:'#64748b', marginBottom:24}}>Welcome back! Sign in to continue shopping.</p>
 
@@ -1012,6 +1016,7 @@ function Login({ onLogin, t = (k) => k }) {
           {['🔒 Secure Login', '🛡️ Data Protected', '✅ Verified Vendors'].map(b => (
             <div key={b} style={{fontSize:12, color:'#94a3b8', display:'flex', alignItems:'center', gap:4}}>{b}</div>
           ))}
+        </div>
         </div>
       </div>
     </div>
