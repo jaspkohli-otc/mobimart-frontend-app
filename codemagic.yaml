@@ -21,10 +21,13 @@ workflows:
         script: CI=false npm run build
       - name: Capacitor sync
         script: npx cap sync ios
-      - name: Install CocoaPods
+      - - name: Install CocoaPods
         script: |
+          find . -name "Podfile" -type f
           cd ios/App
-          pod install --repo-update
+          pod init
+          cat Podfile
+          pod install
       - name: Build iOS app
         script: |
           xcode-project build-ipa \
