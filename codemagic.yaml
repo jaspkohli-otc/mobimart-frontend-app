@@ -24,6 +24,7 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App
+          pod init
           pod install
       - name: Create export options plist
         script: |
