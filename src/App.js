@@ -96,7 +96,9 @@ const CATEGORY_AR = {
   'smart watches': 'الساعات الذكية',
   'fashion': 'الأزياء',
   'beauty': 'الجمال',
-  'home & kitchen': 'المنزل والمطبخ'
+  'home & kitchen': 'المنزل والمطبخ',
+  'kids': 'الأطفال',
+  'perfumes': 'العطور'
 }
 const catLabel = (name, lang = 'EN') => {
   if (!name) return ''
@@ -368,7 +370,7 @@ function Products({
     }
     if (categories.length === 0) return
     const requested = name.trim().toLowerCase()
-    const isParent = !!(['mobiles','computers','audio','wearables','fashion','beauty','home & kitchen','accessories'].includes(requested))
+    const isParent = !!(['mobiles','computers','audio','wearables','fashion','beauty','home & kitchen','accessories','kids','perfumes'].includes(requested))
     if (isParent) {
       // Don't pin to a single category id — let the descendant filter handle it.
       if (selectedCategory) setSelectedCategory('')
@@ -405,7 +407,9 @@ useEffect(() => {
     accessories: ['accessories', 'mobile covers', 'keyboard', 'mouse'],
     fashion: ['fashion'],
     beauty: ['beauty'],
-    'home & kitchen': ['home & kitchen']
+    'home & kitchen': ['home & kitchen'],
+    kids: ['kids', 'kids toys', 'baby', 'toys', 'kids accessories'],
+    perfumes: ['perfumes', 'fragrances', 'cologne', 'perfume']
   }
 
 const baseFiltered = items.filter(p => {
@@ -641,7 +645,9 @@ const quickViewModal = quickViewProduct ? (() => {
     'Smart Watch': 'ساعة ذكية',
     'Smart Watches': 'الساعات الذكية',
     'Tablets': 'الأجهزة اللوحية',
-    'Wearables': 'الأجهزة القابلة للارتداء'
+    'Wearables': 'الأجهزة القابلة للارتداء',
+    'Kids': 'الأطفال',
+    'Perfumes': 'العطور'
   }
 
   return map[name] || name
@@ -1254,8 +1260,10 @@ function Cart({ onCartUpdate, t = (k) => k }) {
   if (loading) return <p style={{padding:40}}>{t('loading')}</p>
 
   return (
-    <div style={styles.page}>
-      <h2 style={{marginBottom:24}}>{t('yourCart')}</h2>
+    <div style={{display:'flex', flexDirection:'column', minHeight:'100vh', paddingTop:16}}>
+      <div style={{padding:'0 16px 8px', maxWidth:900, width:'100%', margin:'0 auto'}}>
+        <h2 style={{marginBottom:16}}>{t('yourCart')}</h2>
+      </div>
       {cartData.items.length === 0 ? (
         <div style={{textAlign:'center', padding:60}}>
           <p style={{marginBottom:20}}>{t('cartEmpty')}</p>
@@ -1263,52 +1271,72 @@ function Cart({ onCartUpdate, t = (k) => k }) {
         </div>
       ) : (
         <>
-          {/* Select All row */}
-          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12, padding:'8px 0', borderBottom:'1px solid #e2e8f0'}}>
-            <div onClick={toggleAll} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: allSelected ? '#f97316' : '#cbd5e1', background: allSelected ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0}}>
-              {allSelected && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
-            </div>
-            <span style={{fontWeight:600, fontSize:14, color:'#0f1923'}}>{allSelected ? 'Deselect All' : 'Select All'} ({cartData.items.length} items)</span>
-          </div>
-          {cartData.items.map(item => {
-            const checked = selectedItems.includes(item.id)
-            return (
-              <div key={item.id} style={{...styles.cartItem, opacity: checked ? 1 : 0.5, border: checked ? '1.5px solid #f97316' : '1.5px solid #e2e8f0', borderRadius:10, marginBottom:10, transition:'all 0.15s'}}>
-                <div onClick={() => toggleItem(item.id)} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: checked ? '#f97316' : '#cbd5e1', background: checked ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, marginRight:8}}>
-                  {checked && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
-                </div>
-                <div style={{fontSize:32}}>📱</div>
-                <div style={{flex:1, marginLeft:12}}>
-                  <p style={{fontWeight:500}}>{item.product.name}</p>
-                  <p style={{color:'#666', fontSize:14}}>{item.product.vendor?.storeName}</p>
-                </div>
-                <div style={{display:'flex', alignItems:'center', gap:12}}>
-                  <div style={{display:'flex', alignItems:'center', gap:8}}>
-                    <button onClick={() => item.quantity === 1 ? handleRemove(item.productId) : handleUpdate(item.productId, item.quantity - 1)} style={styles.qtyBtn}>-</button>
-                    <span style={{fontWeight:500, minWidth:20, textAlign:'center'}}>{item.quantity}</span>
-                    <button onClick={() => handleUpdate(item.productId, item.quantity + 1)} style={styles.qtyBtn}>+</button>
-                  </div>
-                  <p style={{color:'#f97316', fontWeight:500, minWidth:90, textAlign:'right'}}>{formatQAR(item.product.price * item.quantity)}</p>
-                  <button onClick={() => handleRemove(item.productId)} style={styles.removeBtn}>X</button>
-                </div>
+          {/* Scrollable items area */}
+          <div style={{flex:1, overflowY:'auto', padding:'0 16px 8px', maxWidth:900, width:'100%', margin:'0 auto'}}>
+            {/* Select All row */}
+            <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12, padding:'8px 0', borderBottom:'1px solid #e2e8f0'}}>
+              <div onClick={toggleAll} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: allSelected ? '#f97316' : '#cbd5e1', background: allSelected ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0}}>
+                {allSelected && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
               </div>
-            )
-          })}
-          <div style={styles.cartTotal}>
-            <h3 style={{marginBottom:4}}>{t('total')}: <span style={{color:'#f97316'}}>{formatQAR(subtotal)}</span></h3>
-            {checkedItems.length < cartData.items.length && (
-              <p style={{color:'#64748b', fontSize:13, marginBottom:12}}>{checkedItems.length} of {cartData.items.length} items selected</p>
-            )}
-            <button
-              onClick={() => {
-                localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
-                navigate('/checkout')
-              }}
-              disabled={checkedItems.length === 0}
-              style={{...styles.submitBtn, opacity: checkedItems.length === 0 ? 0.5 : 1}}
-            >
-              {t('proceedToCheckout')} ({checkedItems.length} item{checkedItems.length !== 1 ? 's' : ''})
-            </button>
+              <span style={{fontWeight:600, fontSize:14, color:'#0f1923'}}>{allSelected ? 'Deselect All' : 'Select All'} ({cartData.items.length} items)</span>
+            </div>
+            {cartData.items.map(item => {
+              const checked = selectedItems.includes(item.id)
+              return (
+                <div key={item.id} style={{...styles.cartItem, opacity: checked ? 1 : 0.5, border: checked ? '1.5px solid #f97316' : '1.5px solid #e2e8f0', borderRadius:10, marginBottom:10, transition:'all 0.15s'}}>
+                  <div onClick={() => toggleItem(item.id)} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: checked ? '#f97316' : '#cbd5e1', background: checked ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, marginRight:8}}>
+                    {checked && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
+                  </div>
+                  <div style={{fontSize:32}}>📱</div>
+                  <div style={{flex:1, marginLeft:12}}>
+                    <p style={{fontWeight:500}}>{item.product.name}</p>
+                    <p style={{color:'#666', fontSize:14}}>{item.product.vendor?.storeName}</p>
+                  </div>
+                  <div style={{display:'flex', alignItems:'center', gap:12}}>
+                    <div style={{display:'flex', alignItems:'center', gap:8}}>
+                      <button onClick={() => item.quantity === 1 ? handleRemove(item.productId) : handleUpdate(item.productId, item.quantity - 1)} style={styles.qtyBtn}>-</button>
+                      <span style={{fontWeight:500, minWidth:20, textAlign:'center'}}>{item.quantity}</span>
+                      <button onClick={() => handleUpdate(item.productId, item.quantity + 1)} style={styles.qtyBtn}>+</button>
+                    </div>
+                    <p style={{color:'#f97316', fontWeight:500, minWidth:90, textAlign:'right'}}>{formatQAR(item.product.price * item.quantity)}</p>
+                    <button onClick={() => handleRemove(item.productId)} style={styles.removeBtn}>X</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Sticky bottom: total + checkout button — always visible */}
+          <div style={{
+            position:'sticky', bottom:0, background:'#fff',
+            borderTop:'1px solid #e2e8f0',
+            padding:'12px 16px',
+            paddingBottom:'calc(12px + env(safe-area-inset-bottom, 0px))',
+            boxShadow:'0 -3px 14px rgba(0,0,0,0.08)',
+            zIndex:10
+          }}>
+            <div style={{maxWidth:900, margin:'0 auto'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
+                <span style={{color:'#64748b', fontSize:13}}>
+                  {checkedItems.length < cartData.items.length
+                    ? `${checkedItems.length} of ${cartData.items.length} selected`
+                    : `${cartData.items.length} item${cartData.items.length !== 1 ? 's' : ''}`}
+                </span>
+                <span style={{fontWeight:700, fontSize:17}}>
+                  {t('total')}: <span style={{color:'#f97316'}}>{formatQAR(subtotal)}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem('selectedCartItems', JSON.stringify(selectedItems))
+                  navigate('/checkout')
+                }}
+                disabled={checkedItems.length === 0}
+                style={{...styles.submitBtn, width:'100%', margin:0, opacity: checkedItems.length === 0 ? 0.5 : 1}}
+              >
+                {t('proceedToCheckout')} ({checkedItems.length} item{checkedItems.length !== 1 ? 's' : ''})
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -1813,6 +1841,19 @@ function Orders({ user, t = (k) => k }) {
     setUpdatingId(null)
   }
 
+  const handleBuyAgain = async (items) => {
+    if (!items || items.length === 0) return
+    try {
+      for (const item of items) {
+        const productId = item.productId || item.product?.id
+        if (productId) await cart.add({ productId, quantity: item.quantity || 1 })
+      }
+      navigate('/cart')
+    } catch {
+      alert('Could not add items to cart. Please try again.')
+    }
+  }
+
   const statusColor = { PENDING:'#f97316', CONFIRMED:'#3b82f6', SHIPPED:'#8b5cf6', DELIVERED:'#10b981', CANCELLED:'#ef4444' }
   const nextStatus = { PENDING:'CONFIRMED', CONFIRMED:'SHIPPED', SHIPPED:'DELIVERED' }
 
@@ -1827,21 +1868,63 @@ function Orders({ user, t = (k) => k }) {
           <Link to="/products" style={styles.heroBtn}>{t('startShopping')}</Link>
         </div>
       ) : orderList.map(order => (
-        <div key={order.id} style={{border:'1px solid #eee', borderRadius:12, padding:20, marginBottom:16, background:'#fff'}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12}}>
+        <div key={order.id} style={{border:'1px solid #eee', borderRadius:12, padding:16, marginBottom:16, background:'#fff', boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+          {/* Order header */}
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12}}>
             <div>
-              <p onClick={() => navigate(`/orders/${order.id}`)} style={{fontWeight:600, color:'#1e3a5f', cursor:'pointer'}}>{t('order')} #{order.id?.slice(0,8)}...</p>
-              <p style={{color:'#666', fontSize:14, marginTop:4}}>{new Date(order.createdAt).toLocaleDateString()}</p>
+              <p onClick={() => navigate(`/orders/${order.id}`)} style={{fontWeight:700, color:'#1e3a5f', cursor:'pointer', fontSize:14, margin:0}}>
+                {t('order')} #{order.id?.slice(0,8)}...
+              </p>
+              <p style={{color:'#999', fontSize:12, marginTop:3, marginBottom:0}}>{new Date(order.createdAt).toLocaleDateString()}</p>
             </div>
-            <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-              <p style={{color:'#f97316', fontWeight:700, fontSize:18}}>{formatQAR(order.totalAmount)}</p>
-              <span style={{background: statusColor[order.status] + '20', color: statusColor[order.status], padding:'4px 12px', borderRadius:20, fontSize:13, fontWeight:600}}>{order.status}</span>
+            <span style={{background: statusColor[order.status] + '20', color: statusColor[order.status], padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:600, flexShrink:0}}>
+              {order.status}
+            </span>
+          </div>
+
+          {/* Items list */}
+          {order.orderItems && order.orderItems.length > 0 && (
+            <div style={{borderTop:'1px solid #f0f0f0', borderBottom:'1px solid #f0f0f0', padding:'10px 0', marginBottom:12}}>
+              {order.orderItems.map((item, idx) => (
+                <div key={idx} style={{display:'flex', alignItems:'center', gap:10, paddingBottom: idx < order.orderItems.length - 1 ? 8 : 0, marginBottom: idx < order.orderItems.length - 1 ? 8 : 0, borderBottom: idx < order.orderItems.length - 1 ? '1px dashed #f0f0f0' : 'none'}}>
+                  {item.product?.images?.[0] ? (
+                    <img src={item.product.images[0]} alt={item.product?.name}
+                      style={{width:42, height:42, objectFit:'cover', borderRadius:8, border:'1px solid #eee', flexShrink:0}}
+                      onError={e => { e.target.style.display='none' }}
+                    />
+                  ) : (
+                    <div style={{width:42, height:42, borderRadius:8, background:'#f3f4f6', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0}}>📱</div>
+                  )}
+                  <div style={{flex:1, minWidth:0}}>
+                    <p style={{fontWeight:500, fontSize:13, margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.product?.name || 'Product'}</p>
+                    <p style={{color:'#888', fontSize:12, margin:0}}>Qty: {item.quantity} × {formatQAR(item.unitPrice)}</p>
+                  </div>
+                  <p style={{color:'#f97316', fontWeight:600, fontSize:13, flexShrink:0, margin:0}}>{formatQAR(item.unitPrice * item.quantity)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Footer: total + action buttons */}
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8}}>
+            <p style={{color:'#f97316', fontWeight:700, fontSize:16, margin:0}}>{formatQAR(order.totalAmount)}</p>
+            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
               {user?.role === 'VENDOR' && nextStatus[order.status] && (
                 <button onClick={() => handleStatusUpdate(order.id, nextStatus[order.status])} disabled={updatingId === order.id}
-                  style={{padding:'6px 14px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:13}}>
+                  style={{padding:'6px 12px', background:'#1e3a5f', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12}}>
                   {updatingId === order.id ? '...' : `Mark ${nextStatus[order.status]}`}
                 </button>
               )}
+              {order.orderItems && order.orderItems.length > 0 && (
+                <button onClick={() => handleBuyAgain(order.orderItems)}
+                  style={{padding:'6px 14px', background:'#f97316', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12, fontWeight:700}}>
+                  🛒 Buy Again
+                </button>
+              )}
+              <button onClick={() => navigate(`/orders/${order.id}`)}
+                style={{padding:'6px 12px', background:'#f8f9fa', color:'#1e3a5f', border:'1px solid #e2e8f0', borderRadius:8, cursor:'pointer', fontSize:12, fontWeight:600}}>
+                View Details
+              </button>
             </div>
           </div>
         </div>

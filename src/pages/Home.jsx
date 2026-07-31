@@ -89,6 +89,20 @@ const categories = [
     image: '/categories/home-kitchen.png',
     to: '/products?category=Home%20%26%20Kitchen',
     comingSoon: true
+  },
+  {
+    id: 'kids',
+    label: language === 'AR' ? 'الأطفال' : 'Kids',
+    image: '/categories/kids.png',
+    to: '/products?category=Kids',
+    comingSoon: true
+  },
+  {
+    id: 'perfumes',
+    label: language === 'AR' ? 'العطور' : 'Perfumes',
+    image: '/categories/perfumes.png',
+    to: '/products?category=Perfumes',
+    comingSoon: true
   }
 ]
   return (
@@ -832,8 +846,8 @@ ctaMobileSecondary: {
   // Category grid
   catGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-    gap: 16,
+    gridTemplateColumns: 'repeat(10, 1fr)',
+    gap: 10,
   },
   catGridMobile: {
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -842,17 +856,17 @@ ctaMobileSecondary: {
 catCard: {
   background: 'linear-gradient(180deg,#ffffff 0%,#fafafa 100%)',
   border: '1px solid #e5e7eb',
-  borderRadius: 20,
-  padding: '20px',
+  borderRadius: 16,
+  padding: '14px 8px',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: 14,
+  gap: 10,
   textDecoration: 'none',
   color: '#0f1923',
   transition: 'all .25s ease',
-  minHeight: 170,
+  minHeight: 150,
   boxShadow: '0 8px 24px rgba(15,23,42,0.08)',
   overflow: 'hidden',
   cursor: 'pointer',
