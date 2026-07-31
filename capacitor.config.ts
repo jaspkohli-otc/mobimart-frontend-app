@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.jasprmarket.app',
+  appId: 'com.jasprtrading.jasprmarket',
   appName: 'JASPR Market',
   webDir: 'build',
   plugins: {
