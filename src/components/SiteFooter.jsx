@@ -2,11 +2,13 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 
 function SiteFooter({ t = (k) => k, language = 'EN' }) {
+  const isMobile = window.innerWidth <= 768
 
   return (
   <footer style={s.footer} dir="ltr">
 
-      {/* Trust Row */}
+      {/* Trust Row — hidden on mobile per request; still shows on desktop */}
+      {!isMobile && (
       <div style={s.trustRow}>
         <div style={s.trustItem}>
           <div style={s.icon}>🛡️</div>
@@ -19,8 +21,8 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
         <div style={s.trustItem}>
           <div style={s.icon}>🔄</div>
           <div>
-          <strong>{language === 'AR' ? 'سوق موثوق' : 'Trusted Marketplace'}</strong>
-          <span>{language === 'AR' ? 'بائعون موثقون' : 'Verified vendors'}</span>
+          <strong>{language === 'AR' ? 'إرجاع سهل' : 'Easy Returns'}</strong>
+          <span>{language === 'AR' ? 'إرجاع خلال 7 أيام' : '7-day hassle-free returns'}</span>
           </div>
         </div>
 
@@ -50,6 +52,7 @@ function SiteFooter({ t = (k) => k, language = 'EN' }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Simple copyright row */}
       <div style={s.simpleCopyright}>

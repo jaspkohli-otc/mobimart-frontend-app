@@ -1216,6 +1216,7 @@ function Cart({ onCartUpdate, t = (k) => k }) {
   const [loading, setLoading] = useState(true)
   const [selectedItems, setSelectedItems] = useState([])
   const navigate = useNavigate()
+  const isMobile = window.innerWidth <= 768
 
   // Auto-select all items when cart loads
   useEffect(() => {
@@ -1278,7 +1279,7 @@ function Cart({ onCartUpdate, t = (k) => k }) {
       ) : (
         <>
           {/* Scrollable items area */}
-          <div style={{flex:1, overflowY:'auto', padding:'0 16px 8px', maxWidth:900, width:'100%', margin:'0 auto'}}>
+          <div style={{flex:1, overflowY:'auto', overflowX:'hidden', padding:'0 16px 8px', maxWidth:900, width:'100%', margin:'0 auto', boxSizing:'border-box'}}>
             {/* Select All row */}
             <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12, padding:'8px 0', borderBottom:'1px solid #e2e8f0'}}>
               <div onClick={toggleAll} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: allSelected ? '#f97316' : '#cbd5e1', background: allSelected ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0}}>
@@ -1289,22 +1290,24 @@ function Cart({ onCartUpdate, t = (k) => k }) {
             {cartData.items.map(item => {
               const checked = selectedItems.includes(item.id)
               return (
-                <div key={item.id} style={{...styles.cartItem, opacity: checked ? 1 : 0.5, border: checked ? '1.5px solid #f97316' : '1.5px solid #e2e8f0', borderRadius:10, marginBottom:10, transition:'all 0.15s'}}>
-                  <div onClick={() => toggleItem(item.id)} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: checked ? '#f97316' : '#cbd5e1', background: checked ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, marginRight:8}}>
-                    {checked && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
+                <div key={item.id} style={{...styles.cartItem, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', opacity: checked ? 1 : 0.5, border: checked ? '1.5px solid #f97316' : '1.5px solid #e2e8f0', borderRadius:10, marginBottom:10, transition:'all 0.15s', boxSizing:'border-box'}}>
+                  <div style={{display:'flex', alignItems:'center', minWidth:0}}>
+                    <div onClick={() => toggleItem(item.id)} style={{width:22, height:22, borderRadius:4, border:'2px solid', borderColor: checked ? '#f97316' : '#cbd5e1', background: checked ? '#f97316' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, marginRight:8}}>
+                      {checked && <span style={{color:'#fff', fontSize:13, fontWeight:700}}>✓</span>}
+                    </div>
+                    <div style={{fontSize:32, flexShrink:0}}>📱</div>
+                    <div style={{flex:1, minWidth:0, marginLeft:12}}>
+                      <p style={{fontWeight:500, wordBreak:'break-word'}}>{item.product.name}</p>
+                      <p style={{color:'#666', fontSize:14}}>{item.product.vendor?.storeName}</p>
+                    </div>
                   </div>
-                  <div style={{fontSize:32}}>📱</div>
-                  <div style={{flex:1, marginLeft:12}}>
-                    <p style={{fontWeight:500}}>{item.product.name}</p>
-                    <p style={{color:'#666', fontSize:14}}>{item.product.vendor?.storeName}</p>
-                  </div>
-                  <div style={{display:'flex', alignItems:'center', gap:12}}>
+                  <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', justifyContent: isMobile ? 'space-between' : 'flex-end', marginTop: isMobile ? 12 : 0, paddingLeft: isMobile ? 30 : 0}}>
                     <div style={{display:'flex', alignItems:'center', gap:8}}>
                       <button onClick={() => item.quantity === 1 ? handleRemove(item.productId) : handleUpdate(item.productId, item.quantity - 1)} style={styles.qtyBtn}>-</button>
                       <span style={{fontWeight:500, minWidth:20, textAlign:'center'}}>{item.quantity}</span>
                       <button onClick={() => handleUpdate(item.productId, item.quantity + 1)} style={styles.qtyBtn}>+</button>
                     </div>
-                    <p style={{color:'#f97316', fontWeight:500, minWidth:90, textAlign:'right'}}>{formatQAR(item.product.price * item.quantity)}</p>
+                    <p style={{color:'#f97316', fontWeight:500, minWidth: isMobile ? 'auto' : 90, textAlign:'right', margin:0}}>{formatQAR(item.product.price * item.quantity)}</p>
                     <button onClick={() => handleRemove(item.productId)} style={styles.removeBtn}>X</button>
                   </div>
                 </div>
